@@ -15,9 +15,8 @@ import sys
 from collections import defaultdict
 
 import click
-
-import utils_thirdparty
 import utils_requirements
+import utils_thirdparty
 
 TRACE = False
 TRACE_DEEP = False
@@ -120,7 +119,7 @@ TRACE_DEEP = False
     show_default=False,
     multiple=True,
     help="Package name(s) that come only in sdist format (no wheels). "
-         "The command will not fail and exit if no wheel exists for these names",
+    "The command will not fail and exit if no wheel exists for these names",
 )
 @click.option(
     "--wheel-only",
@@ -131,7 +130,7 @@ TRACE_DEEP = False
     show_default=False,
     multiple=True,
     help="Package name(s) that come only in wheel format (no sdist). "
-         "The command will not fail and exit if no sdist exists for these names",
+    "The command will not fail and exit if no sdist exists for these names",
 )
 @click.option(
     "--no-dist",
@@ -142,7 +141,7 @@ TRACE_DEEP = False
     show_default=False,
     multiple=True,
     help="Package name(s) that do not come either in wheel or sdist format. "
-         "The command will not fail and exit if no distribution exists for these names",
+    "The command will not fail and exit if no distribution exists for these names",
 )
 @click.help_option("-h", "--help")
 def fetch_thirdparty(
@@ -248,7 +247,6 @@ def fetch_thirdparty(
         print(f"Processing: {name} @ {version}")
         if wheels:
             for environment in environments:
-
                 if TRACE:
                     print(f"  ==> Fetching wheel for envt: {environment}")
 
@@ -264,9 +262,7 @@ def fetch_thirdparty(
                     if TRACE:
                         print(f"      NOT FOUND")
 
-        if (sdists or
-            (f"{name}=={version}" in wheels_or_sdist_not_found and name in sdist_only)
-         ):
+        if sdists or (f"{name}=={version}" in wheels_or_sdist_not_found and name in sdist_only):
             if TRACE:
                 print(f"  ==> Fetching sdist: {name}=={version}")
 

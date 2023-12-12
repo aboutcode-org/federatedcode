@@ -40,6 +40,7 @@ norecursedirs = [
    "tests/*/data"
 ]
 
+DJANGO_SETTINGS_MODULE = "federatedcode.settings"
 python_files = "*.py"
 
 python_classes = "Test"
@@ -50,3 +51,22 @@ addopts = [
     "--strict-markers",
     "--doctest-modules"
 ]
+[tool.black]
+line-length = 100
+include = '\.pyi?$'
+skip_gitignore = true
+# 'extend-exclude' excludes files or directories in addition to the defaults
+extend-exclude = '''
+(
+  ^/venv/.*
+  | ^/federatedcode/migrations/.*
+)
+'''
+
+[tool.isort]
+profile = "black"
+line_length = 100
+force_single_line = true
+skip_gitignore = true
+skip_glob = "federatedcode/migrations/*"
+
