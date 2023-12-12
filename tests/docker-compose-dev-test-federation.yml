@@ -14,13 +14,13 @@ services:
     volumes:
       - db_data2:/var/lib/postgresql/data2/
 
-  purl_sync1:
-    build:  ../../
+  federated_code1:
+    build:  ../
     command: /bin/sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8001"
     env_file:
       - docker-compose-dev-test-federation1.env
     volumes:
-      - /etc/purl_sync1/:/etc/purl_sync1/
+      - /etc/federated_code1/:/etc/federated_code1/
     expose:
       - 8001
     ports:
@@ -28,13 +28,13 @@ services:
     depends_on:
       - db1
 
-  purl_sync2:
-    build: ../../
+  federated_code2:
+    build: ../
     command: /bin/sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
     env_file:
       - docker-compose-dev-test-federation2.env
     volumes:
-      - /etc/purl_sync2/:/etc/purl_sync2/
+      - /etc/federated_code2/:/etc/federated_code2/
     expose:
       - 8002
     ports:
@@ -46,6 +46,6 @@ services:
 volumes:
   db_data1:
   db_data2:
-  purl_sync1:
-  purl_sync2:
+  federated_code1:
+  federated_code2:
 

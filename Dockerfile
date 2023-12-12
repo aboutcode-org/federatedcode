@@ -14,10 +14,10 @@ ENV PYTHONDONTWRITEBYTECODE 1
 
 RUN pip install --upgrade pip
 
-WORKDIR /purl_sync
+WORKDIR /federatedcode
 
-COPY requirements.txt pyproject.toml /purl_sync/
+COPY requirements.txt pyproject.toml /federatedcode/
 
 RUN pip install -r requirements.txt
 
-COPY . /purl_sync
+COPY . /federatedcode
