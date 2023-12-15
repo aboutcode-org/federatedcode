@@ -43,9 +43,8 @@ from fedcode.forms import SearchPurlForm
 from fedcode.forms import SearchRepositoryForm
 from fedcode.forms import SearchReviewForm
 from fedcode.forms import SubscribePurlForm
-from federatedcode.settings import AP_CONTENT_TYPE
+from federatedcode.settings import AP_CONTENT_TYPE, FEDERATED_CODE_GIT_PATH
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import GIT_PATH
 from federatedcode.settings import env
 
 from .activitypub import AP_CONTEXT
@@ -219,7 +218,7 @@ class CreatGitView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         self.object = form.save(commit=False)
         self.object.admin = self.request.user.service
-        self.object.path = os.path.join(GIT_PATH, form.cleaned_data["name"])
+        self.object.path = os.path.join(FEDERATED_CODE_GIT_PATH, form.cleaned_data["name"])
         self.object.save()
         return super(CreatGitView, self).form_valid(form)
 
@@ -230,9 +229,8 @@ class CreateSync(LoginRequiredMixin, View):
         try:
             repo = Repository.objects.get(id=repository_id)
             if repo.admin == self.request.user.service:
-                commit_hash_before_pull = repo.heads.master.commit.hexsha
                 repo.git_repo_obj.remotes.origin.pull()
-                importer = Importer(commit_hash_before_pull, repo.git_repo_obj, repo.admin)
+                importer = Importer(repo, repo.admin)
                 importer.run()
             else:
                 return HttpResponseForbidden("Invalid Git Repository Admin")
@@ -759,9 +757,9 @@ class PurlOutbox(View):
             return HttpResponseBadRequest("Invalid purl")
 
         if (
-            request.user.is_authenticated
-            and hasattr(request.user, "service")
-            and actor.service == request.user.service
+                request.user.is_authenticated
+                and hasattr(request.user, "service")
+                and actor.service == request.user.service
         ):
             activity = create_activity_obj(request.body)
             return activity.handler()

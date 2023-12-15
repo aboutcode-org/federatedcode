@@ -20,7 +20,7 @@ from fedcode.utils import clone_git_repo
 from fedcode.utils import full_reverse
 from fedcode.utils import generate_webfinger
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import GIT_PATH
+from federatedcode.settings import FEDERATED_CODE_GIT_PATH
 
 
 class RemoteActor(models.Model):
@@ -30,7 +30,7 @@ class RemoteActor(models.Model):
 
 
 class Actor(models.Model):
-    summary = models.CharField(help_text="", max_length=100)
+    summary = models.CharField(help_text="profile summary", max_length=100)
     public_key = models.TextField(blank=False)
     local = models.BooleanField(default=True)
 
@@ -45,10 +45,14 @@ class Reputation(models.Model):
 
     @property
     def to_ap(self):
-        return {}
+        return {
+            "voter": self.voter,
+            "acceptor": self.acceptor,
+            "positive": self.positive,
+        }
 
     class Meta:
-        unique_together = [["voter", "acceptor", "positive"]]
+        unique_together = [["voter", "acceptor"]]
 
 
 class Service(models.Model):
@@ -144,17 +148,14 @@ class Purl(Actor):
     string = models.CharField(
         max_length=300, help_text="PURL (no version) ex: @pkg:maven/org.apache.logging"
     )
-    notes = models.ManyToManyField(Note, blank=True, help_text="")
+    notes = models.ManyToManyField(Note, blank=True, help_text="""the notes that this purl created ex:
+                                                               purl: pkg:.../.../
+                                                               affected_by_vulnerabilities: []
+                                                               fixing_vulnerabilities: []
+                                                               """)
 
     class Meta:
         unique_together = [["service", "remote_actor", "string"]]
-
-    @property
-    def reputation_value(self):
-        return (
-            self.reputation.filter(positive=True).count()
-            - self.reputation.filter(positive=False).count()
-        )
 
     @property
     def acct(self):
@@ -320,12 +321,13 @@ class Repository(models.Model):
         default=uuid.uuid4,
         help_text="The object's unique global identifier",
     )
-    name = models.CharField(max_length=50, help_text="")
-    url = models.URLField(help_text="")
-    path = models.CharField(max_length=200, help_text="")
-    admin = models.ForeignKey(Service, on_delete=models.CASCADE, help_text="")
-    remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="")
-    last_imported_commit = models.CharField(max_length=64, blank=True, null=True, help_text="")
+    name = models.CharField(max_length=50, help_text="repository name")
+    url = models.URLField(help_text="repository url ex: https://github.com/nexB/federatedcode")
+    path = models.CharField(max_length=200, help_text="path of the repository")
+    admin = models.ForeignKey(Service, on_delete=models.CASCADE, help_text="admin user ex: VCIO user")
+    remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="the url of the repository"
+                                                                                   " if this repository is remote")
+    last_imported_commit = models.CharField(max_length=64, blank=True, null=True)
 
     def __str__(self):
         return self.name
@@ -404,7 +406,8 @@ class Review(models.Model):
     updated_at = models.DateTimeField(
         auto_now=True, help_text="A field to track when review are updated"
     )
-    remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="")
+    remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="the review remote url if "
+                                                                                   "Remote Review exists")
 
     class ReviewStatus(models.IntegerChoices):
         OPEN = 0
@@ -462,4 +465,4 @@ class Review(models.Model):
 @receiver(post_save, sender=Repository)
 def create_git_repo(sender, instance, created, **kwargs):
     if created:
-        clone_git_repo(GIT_PATH, instance.name, instance.url)
+        clone_git_repo(FEDERATED_CODE_GIT_PATH, instance.name, instance.url)

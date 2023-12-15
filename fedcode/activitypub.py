@@ -21,7 +21,7 @@ from django.http import JsonResponse
 from django.urls import resolve
 
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import GIT_PATH
+from federatedcode.settings import FEDERATED_CODE_GIT_PATH
 
 from .models import Follow
 from .models import Note
@@ -337,7 +337,7 @@ class CreateActivity:
                 new_obj, created = Repository.objects.get_or_create(
                     name=self.object.name,
                     url=self.object.url,
-                    path=GIT_PATH,
+                    path=FEDERATED_CODE_GIT_PATH,
                     admin=actor,
                 )
 
