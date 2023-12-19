@@ -22,7 +22,7 @@ from .test_models import service
 @pytest.mark.django_db
 def test_simple_importer(service, repo, mute_post_save_signal):
     # just add all packages and vulnerabilities
-    repo.path = "/home/ziad/vul-sample"
+    repo.path = "/home/ziad/vul-sample/repo1"
     importer = Importer(repo, service)
     importer.run()
 
@@ -46,31 +46,42 @@ def test_simple_importer(service, repo, mute_post_save_signal):
     assert last_imported_commit == repo.last_imported_commit
 
     # Edit last_imported_commit
-    repo.last_imported_commit = "3445628953e52c1edea926a7c0f3985f8995b3c9"
+    repo.last_imported_commit = "c8de84af0a7c11bf151e96142ce711824648ec41"
     repo.save()
     importer = Importer(repo, service)
     importer.run()
 
 
-# @pytest.mark.django_db
-# def test_complex_importer(service, repo, mute_post_save_signal):
-#     repo.last_imported_commit = '3445628953e52c1edea926a7c0f3985f8995b3c9'
-#     importer = Importer(repo, service)
-#     importer.run()
-#
-#     assert Note.objects.count() == 2
-#     assert Vulnerability.objects.count() == 2
-#     assert Purl.objects.count() == 1
-#
-#     purl = Purl.objects.get(string="pkg:alpine/bash")
-#     assert purl.notes.count() == 2
-#
-#     repo.path = "./review/tests/test_data/test_git_repo_v2"
-#     repo.save()
-#
-#     importer = Importer(repo, service)
-#     importer.run()
-#
-#     assert Note.objects.count() == 3
-#     assert Vulnerability.objects.count() == 2
-#     assert Purl.objects.count() == 1
+@pytest.mark.skip(reason="Need a real git repo to test the importer")
+@pytest.mark.django_db
+def test_complex_importer(service, repo, mute_post_save_signal):
+    # repo with 1 commit
+    repo.path = "/home/ziad/vul-sample/repo1"
+    importer = Importer(repo, service)
+    importer.run()
+
+    assert Note.objects.count() > 1
+    assert Vulnerability.objects.count() > 1
+    assert Purl.objects.count() > 1
+    assert repo.last_imported_commit
+
+    note_n = Note.objects.count()
+    vul_n = Vulnerability.objects.count()
+    purl_n = Purl.objects.count()
+    last_imported_commit = repo.last_imported_commit
+
+    # Run importer again without add any new data
+    # the same repo with 2 commit ( after pull )
+    repo.path = "/home/ziad/vul-sample/repo2"
+    importer = Importer(repo, service)
+    importer.run()
+
+    assert note_n > Note.objects.count()
+    assert vul_n > Vulnerability.objects.count()
+    assert purl_n > Purl.objects.count()
+
+    # Edit last_imported_commit
+    repo.last_imported_commit = "9c3ccee39baef6017d9152367402de9909eadd72"
+    repo.save()
+    importer = Importer(repo, service)
+    importer.run()

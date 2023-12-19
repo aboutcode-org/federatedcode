@@ -128,15 +128,10 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
                 create_note(purl, version_b)
 
             if version_a and not version_b:
-                delete_note(purl, version_b)
+                delete_note(purl, version_a)
 
             if version_a and version_b:
-                try:
-                    note = Note.objects.get(acct=purl.acct, content=saneyaml.dump(version_a))
-                except Note.DoesNotExist:
-                    logger.error("Note Doesn't exist")
-                    continue
-
+                note = Note.objects.get(acct=purl.acct, content=saneyaml.dump(version_a))
                 if note.content == saneyaml.dump(version_b):
                     continue
 
@@ -152,12 +147,7 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
 
     elif change_type == "D":
         package = yaml_data_a_blob.get("package")
-        try:
-            purl = Purl.objects.get(string=package, service=default_service)
-        except Purl.DoesNotExist:
-            logger.error("Invalid Purl")
-            return
-
+        purl = Purl.objects.get(string=package, service=default_service)
         for version in yaml_data_a_blob.get("versions", []):
             delete_note(purl, version)
 
@@ -165,7 +155,6 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
 
 
 def create_note(purl, version):
-    """"""
     note = Note.objects.create(acct=purl.acct, content=saneyaml.dump(version))
     purl.notes.add(note)
     create_activity = CreateActivity(actor=purl.to_ap, object=note.to_ap)
@@ -177,17 +166,14 @@ def create_note(purl, version):
 
 
 def delete_note(purl, version):
-    """"""
-    try:
-        note = Note.objects.get(acct=purl.acct, content=saneyaml.dump(version))
-        note.delete()
-        purl.notes.remove(note)
+    note = Note.objects.get(acct=purl.acct, content=saneyaml.dump(version))
+    note_ap = note.to_ap
+    note.delete()
+    purl.notes.remove(note)
 
-        deleted_activity = DeleteActivity(actor=purl.to_ap, object=note.to_ap)
-        Activity.federated(
-            to=purl.followers_inboxes,
-            body=deleted_activity.to_ap(),
-            key_id=purl.key_id,
-        )
-    except Note.DoesNotExist:
-        logger.error("Note Doesn't exist")
+    deleted_activity = DeleteActivity(actor=purl.to_ap, object=note_ap)
+    Activity.federated(
+        to=purl.followers_inboxes,
+        body=deleted_activity.to_ap,
+        key_id=purl.key_id,
+    )
