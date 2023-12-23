@@ -1,12 +1,14 @@
-Welcome to nexb-skeleton's documentation!
+Welcome to Federated Code's documentation!
 =========================================
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Getting Started:
 
+   contribute/installation
    skeleton-usage
    contribute/contrib_doc
+
 
 Indices and tables
 ==================

@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "nexb-skeleton"
+project = "federatedcode"
 copyright = "nexB Inc. and others."
 author = "AboutCode.org authors and contributors"
 

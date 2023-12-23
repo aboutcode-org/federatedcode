@@ -11,6 +11,7 @@ services:
     build: .
     command: /bin/sh -c "
       apt-get update && apt-get install -y gunicorn &&   
+      python manage.py collectstatic --no-input --verbosity 0 --clear &&
       python manage.py migrate &&
       gunicorn federatedcode.wsgi:application -u nobody -g nogroup --bind :8000 --timeout 600 --workers 8"
     env_file:
@@ -21,13 +22,11 @@ services:
       - "8000:8000"
     volumes:
       - /etc/federatedcode/:/etc/federatedcode/
+      - static:/var/federatedcode/static/
     depends_on:
       - db
   nginx:
     image: nginx
-    ports:
-      - 4000:80
-      - 443:443
     env_file:
       - docker.env
     volumes:
@@ -36,3 +35,5 @@ services:
       - federatedcode
 volumes:
   db_data:
+  federatedcode:
+  static:

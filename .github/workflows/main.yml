@@ -25,11 +25,6 @@ jobs:
         ports:
           - 5432:5432
 
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ["3.8", "3.9", "3.10"]
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -37,9 +32,7 @@ jobs:
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-          upgrade-pip: true
+          python-version: '3.10'
 
       - name: Install dependencies
         run: make dev envfile
