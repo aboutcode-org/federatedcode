@@ -17,6 +17,12 @@ dev:
 	@echo "-> Configure the development envt."
 	./configure --dev
 
+envfile:
+	@echo "-> Create the .env file and generate a secret key"
+	@if test -f ${ENV_FILE}; then echo ".env file exists already"; exit 1; fi
+	@mkdir -p $(shell dirname ${ENV_FILE}) && touch ${ENV_FILE}
+	@echo SECRET_KEY=\"${GET_SECRET_KEY}\" > ${ENV_FILE}
+
 isort:
 	@echo "-> Apply isort changes to ensure proper imports ordering"
 	${VENV}/bin/isort --sl -l 100 tests setup.py
@@ -51,4 +57,4 @@ docs:
 	rm -rf docs/_build/
 	@${ACTIVATE} sphinx-build docs/ docs/_build/
 
-.PHONY: conf dev check valid black isort clean test docs
+.PHONY: conf dev check valid black isort clean test docs envfile
