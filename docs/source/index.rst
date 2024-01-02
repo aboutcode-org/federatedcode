@@ -1,5 +1,5 @@
 Welcome to Federated Code's documentation!
-=========================================
+===========================================
 
 .. toctree::
    :maxdepth: 2

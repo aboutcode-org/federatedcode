@@ -39,7 +39,7 @@ Build the Image
 FederatedCode is distributed with ``Dockerfile`` and ``docker-compose.yml`` files
 required for the creation of the Docker image.
 
-Clone the git `VulnerableCode repo <https://github.com/nexB/vulnerablecode>`_,
+Clone the git `FederatedCode repo <https://github.com/nexB/federatedcode>`_,
 create an environment file, and build the Docker image::
 
     git clone https://github.com/nexB/federatedcode.git && cd federatedcode
@@ -60,14 +60,14 @@ Run the App
     docker-compose up
 
 
-At this point, the VulnerableCode app should be running at port ``8000`` on your Docker host.
+At this point, the FederatedCode app should be running at port ``8000`` on your Docker host.
 Go to http://localhost:8000/ on a web browser to access the web UI.
 Optionally, you can set ``NGINX_PORT`` environment variable in your shell or in the `.env` file
 to run on a different port than 8000.
 
 .. note::
 
-    To access a dockerized VulnerableCode app from a remote location, the ``ALLOWED_HOSTS``
+    To access a dockerized FederatedCode app from a remote location, the ``ALLOWED_HOSTS``
     and ``CSRF_TRUSTED_ORIGINS`` setting need to be provided in your ``docker.env`` file::
 
         ALLOWED_HOSTS=.domain.com,127.0.0.1
@@ -79,9 +79,9 @@ to run on a different port than 8000.
 
 .. warning::
 
-   Serving VulnerableCode on a network could lead to security issues and there
+   Serving FederatedCode on a network could lead to security issues and there
    are several steps that may be needed to secure such a deployment.
-   Currently, this is not recommendend.
+   Currently, this is not recommended.
 
 Execute a Command
 ^^^^^^^^^^^^^^^^^
@@ -89,7 +89,7 @@ Execute a Command
 You can execute a one of ``manage.py`` commands through the Docker command line
 interface, for example::
 
-    docker-compose run vulnerablecode ./manage.py import --list
+    docker-compose run federatedcode ./manage.py import --list
 
 .. note::
     Refer to the :ref:`command_line_interface` section for the full list of commands.
@@ -97,8 +97,8 @@ interface, for example::
 Alternatively, you can connect to the Docker container ``bash`` and run commands
 from there::
 
-    docker-compose run vulnerablecode bash
-    ./manage.py import --list
+    docker-compose run federatedcode bash
+
 
 
 .. _local_development_installation:
@@ -110,18 +110,16 @@ Local development installation
 Supported Platforms
 ^^^^^^^^^^^^^^^^^^^
 
-**VulnerableCode** has been tested and is supported on the following operating systems:
-
+**FederatedCode** has been tested and is supported on the following operating systems:
     #. **Debian-based** Linux distributions
-    #. **macOS** 12.1 and up
 
 .. warning::
-     On **Windows** VulnerableCode can **only** :ref:`run_with_docker` and is not supported.
+     On **Windows** FederatedCode can **only** :ref:`run_with_docker` and is not supported.
 
 Pre-installation Checklist
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Before you install VulnerableCode, make sure you have the following prerequisites:
+Before you install FederatedCode, make sure you have the following prerequisites:
 
  * **Python: 3.8+** found at https://www.python.org/downloads/
  * **Git**: most recent release available at https://git-scm.com/
@@ -134,9 +132,9 @@ System Dependencies
 ^^^^^^^^^^^^^^^^^^^
 
 In addition to the above pre-installation checklist, there might be some OS-specific
-system packages that need to be installed before installing VulnerableCode.
+system packages that need to be installed before installing FederatedCode.
 
-On **Debian-based distros**, several **system packages are required** by VulnerableCode.
+On **Debian-based distros**, several **system packages are required** by FederatedCode.
 Make sure those are installed::
 
     sudo apt-get install python3-venv python3-dev postgresql libpq-dev build-essential
@@ -145,9 +143,9 @@ Make sure those are installed::
 Clone and Configure
 ^^^^^^^^^^^^^^^^^^^
 
-Clone the `VulnerableCode Git repository <https://github.com/nexB/vulnerablecode>`_::
+Clone the `FederatedCode Git repository <https://github.com/nexB/federatedcode>`_::
 
-    git clone https://github.com/nexB/vulnerablecode.git && cd vulnerablecode
+    git clone https://github.com/nexB/federatedcode.git && cd federatedcode
 
 Install the required dependencies::
 
@@ -193,7 +191,7 @@ production servers.
 Tests
 ^^^^^
 
-You can validate your VulnerableCode installation by running the tests suite::
+You can validate your federatedcode installation by running the tests suite::
 
     make test
 
@@ -217,48 +215,11 @@ application.
 Upgrading
 ^^^^^^^^^
 
-If you already have the VulnerableCode repo cloned, you can upgrade to the latest version
+If you already have the FederatedCode repo cloned, you can upgrade to the latest version
 with::
 
-    cd vulnerablecode
+    cd federatedcode
     git pull
     make dev
     make migrate
 
-
-Using Nix
------------
-
-You can install VulnerableCode with `Nix <https://nixos.org/download.html>`__
-(`Flake <https://nixos.wiki/wiki/Flakes>`__ support is needed)::
-
-    cd etc/nix
-    nix-shell -p nixFlakes --run "nix --print-build-logs flake check " # build & run tests
-
-There are several options to use the Nix version::
-
-    # Enter an interactive environment with all dependencies set up.
-    cd etc/nix
-    nix develop
-    > ../../manage.py ... # invoke the local checkout
-    > vulnerablecode-manage.py ... # invoke manage.py as installed in the nix store
-
-    # Test the import prodecure using the Nix version.
-    etc/nix/test-import-using-nix.sh --all # import everything
-    # Test the import using the local checkout.
-    INSTALL_DIR=. etc/nix/test-import-using-nix.sh ruby # import ruby only
-
-
-**Keeping the Nix setup in sync**
-
-The Nix installation uses `mach-nix <https://github.com/DavHau/mach-nix>`__ to
-handle Python dependencies because some dependencies are currently not available
-as Nix packages. All Python dependencies are automatically fetched from
-``./requirements.txt``. If the ``mach-nix``-based installation fails, you might
-need to update ``mach-nix`` itself and the `pypi-deps-db
-<https://github.com/DavHau/pypi-deps-db>`_ version in use (see
-``etc/nix/flake.nix:inputs.machnix`` and ``machnixFor.pypiDataRev``).
-
-Non-Python dependencies are curated in::
-
-    etc/nix/flake.nix:vulnerablecode.propagatedBuildInputs

@@ -55,6 +55,6 @@ test:
 
 docs:
 	rm -rf docs/_build/
-	@${ACTIVATE} sphinx-build docs/ docs/_build/
+	@${ACTIVATE} sphinx-build docs/source docs/_build/
 
 .PHONY: conf dev check valid black isort clean test docs envfile
