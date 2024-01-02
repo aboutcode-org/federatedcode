@@ -83,24 +83,6 @@ to run on a different port than 8000.
    are several steps that may be needed to secure such a deployment.
    Currently, this is not recommended.
 
-Execute a Command
-^^^^^^^^^^^^^^^^^
-
-You can execute a one of ``manage.py`` commands through the Docker command line
-interface, for example::
-
-    docker-compose run federatedcode ./manage.py import --list
-
-.. note::
-    Refer to the :ref:`command_line_interface` section for the full list of commands.
-
-Alternatively, you can connect to the Docker container ``bash`` and run commands
-from there::
-
-    docker-compose run federatedcode bash
-
-
-
 .. _local_development_installation:
 
 

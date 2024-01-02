@@ -79,15 +79,20 @@ rich==13.7.0
 saneyaml==0.6.0
 SecretStorage==3.3.3
 six==1.16.0
--e git+https://github.com/ziadhany/federatedcode@7a207e9a349fc98eba68732e009e790c8fe042a2#egg=skeleton
+-e git+https://github.com/ziadhany/federatedcode@4ba4f4c56cb807d5129b56bc343e713259e9b21d#egg=skeleton
 smmap==5.0.0
 sniffio==1.3.0
 snowballstemmer==2.2.0
 Sphinx==7.2.6
 sphinx-autobuild==2021.3.14
+sphinx-copybutton==0.5.2
+sphinx-reredirects==0.1.3
+sphinx-rtd-dark-mode==1.3.0
+sphinx-rtd-theme==2.0.0
 sphinxcontrib-applehelp==1.0.7
 sphinxcontrib-devhelp==1.0.5
 sphinxcontrib-htmlhelp==2.0.4
+sphinxcontrib-jquery==4.1
 sphinxcontrib-jsmath==1.0.1
 sphinxcontrib-qthelp==1.0.6
 sphinxcontrib-serializinghtml==1.1.9
