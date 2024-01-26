@@ -17,7 +17,6 @@ from django.urls import resolve
 from django.urls import reverse
 from git.repo.base import Repo
 from packageurl import PackageURL
-
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
 
 
@@ -50,7 +49,8 @@ def clone_git_repo(repo_path, repo_name, repo_url):
     """
     Create Git repository in ${repo_path}/${repo_name}.git and git pull origin branch
     """
-    repo = Repo.clone_from(repo_url, os.path.join(repo_path, repo_name))
+    abspath = os.path.join(repo_path, repo_name)
+    repo = Repo.clone_from(repo_url, str(abspath))
     return repo
 
 

@@ -72,19 +72,19 @@ def test_get_ap_profile_user(person, service):
     )
 
     assert json.loads(response_person.content) == {
+        "type": "Person",
+        "name": "ziad",
+        "summary": "Hello World",
         "following": "https://127.0.0.1:8000/api/v0/users/@ziad/following/",
         "id": "https://127.0.0.1:8000/api/v0/users/@ziad",
         "image": "https://127.0.0.1:8000/media/favicon-16x16.png",
         "inbox": "https://127.0.0.1:8000/api/v0/users/@ziad/inbox",
-        "name": "ziad",
         "outbox": "https://127.0.0.1:8000/api/v0/users/@ziad/outbox",
         "publicKey": {
             "id": "https://127.0.0.1:8000/api/v0/users/@ziad",
             "owner": "https://127.0.0.1:8000/api/v0/users/@ziad",
             "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC " "KEY-----",
         },
-        "summary": "Hello World",
-        "type": "Person",
     }
 
     assert json.loads(response_service.content) == {"name": "vcio", "type": "Service"}
@@ -179,9 +179,10 @@ def test_get_user_inbox(person, vulnerability, review, purl):
                     "type": "Review",
                     "author": "https://127.0.0.1:8000/api/v0/users/@ziad",
                     "headline": review.headline,
-                    "vulnerability": str(vulnerability.id),
+                    "repository": str(review.repository.id),
+                    "filepath": review.filepath,
                     "content": review.data,
-                    "commit_id": review.commit_id,
+                    "commit": review.commit,
                     "comments": {
                         "type": "OrderedCollection",
                         "totalItems": 0,
@@ -234,9 +235,10 @@ def test_get_user_outbox(person, vulnerability, review, note):
                     "type": "Review",
                     "author": f"https://127.0.0.1:8000/api/v0/users/@{review.author.user.username}",
                     "headline": review.headline,
-                    "vulnerability": str(vulnerability.id),
+                    "repository": str(review.repository.id),
+                    "filepath": review.filepath,
                     "content": review.data,
-                    "commit_id": review.commit_id,
+                    "commit": review.commit,
                     "comments": {
                         "type": "OrderedCollection",
                         "totalItems": 0,

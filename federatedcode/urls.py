@@ -9,12 +9,11 @@
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.contrib.auth.views import LogoutView
 from django.urls import include
 from django.urls import path
 
 from fedcode import views
-from fedcode.views import CreateReview
+from fedcode.views import CreateReview, logout
 from fedcode.views import CreateSync
 from fedcode.views import CreatGitView
 from fedcode.views import FollowPurlView
@@ -54,7 +53,7 @@ urlpatterns = [
     path("purls/@<path:purl_string>/follow", FollowPurlView.as_view(), name="purl-follow"),
     path("accounts/sign-up", PersonSignUp.as_view(), name="signup"),
     path("accounts/login/", UserLogin.as_view(), name="login"),
-    path("accounts/logout", LogoutView.as_view(next_page="login"), name="logout"),
+    path("accounts/logout", logout, name="logout"),
     path("create-repo", CreatGitView.as_view(), name="repo-create"),
     path("repo-list", RepositoryListView.as_view(), name="repo-list"),
     path("purl-list", PurlListView.as_view(), name="purl-list"),

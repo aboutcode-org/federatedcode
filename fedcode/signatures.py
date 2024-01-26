@@ -68,7 +68,7 @@ class RsaKeys:
         return private_key_serialized, public_key_serialized
 
 
-PURL_SYNC_PRIVATE_KEY, PURL_SYNC_PUBLIC_KEY = RsaKeys.generate_keypair()
+FEDERATED_CODE_PRIVATE_KEY, FEDERATED_CODE_PUBLIC_KEY = RsaKeys.generate_keypair()
 
 
 class HttpSignature:

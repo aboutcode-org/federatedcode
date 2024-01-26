@@ -8,6 +8,7 @@
 #
 import difflib
 import json
+import logging
 import os.path
 
 import requests
@@ -55,7 +56,7 @@ from .forms import CreateNoteForm
 from .forms import CreateReviewForm
 from .forms import ReviewStatusForm
 from .importer import Importer
-from .models import Follow
+from .models import Follow, SyncRequest
 from .models import Note
 from .models import Person
 from .models import Purl
@@ -69,9 +70,19 @@ from .utils import generate_webfinger
 from .utils import load_git_file
 from .utils import parse_webfinger
 from .utils import webfinger_actor
+from django.contrib.auth.models import auth
+from django.db.models import Count
+from django.contrib import messages
+
+logger = logging.getLogger(__name__)
 
 FEDERATED_CODE_CLIENT_ID = env.str("FEDERATED_CODE_CLIENT_ID")
 FEDERATED_CODE_CLIENT_SECRET = env.str("FEDERATED_CODE_CLIENT_SECRET")
+
+
+def logout(request):
+    auth.logout(request)
+    return redirect("login")
 
 
 class WebfingerView(View):
@@ -229,9 +240,8 @@ class CreateSync(LoginRequiredMixin, View):
         try:
             repo = Repository.objects.get(id=repository_id)
             if repo.admin == self.request.user.service:
-                repo.git_repo_obj.remotes.origin.pull()
-                importer = Importer(repo, repo.admin)
-                importer.run()
+                SyncRequest.objects.create(repo=repo)
+                messages.success(self.request, "The sync request was sent successfully")
             else:
                 return HttpResponseForbidden("Invalid Git Repository Admin")
         except Repository.DoesNotExist:
@@ -308,9 +318,9 @@ class ReviewView(LoginRequiredMixin, TemplateView):
         context["review"] = get_object_or_404(Review, id=self.kwargs["review_id"])
         vul_source = context["review"].data.splitlines()
         vul_target = load_git_file(
-            git_repo_obj=context["review"].vulnerability.repo.git_repo_obj,
-            filename=context["review"].vulnerability.filename,
-            commit_id=context["review"].commit_id,
+            git_repo_obj=context["review"].repository.git_repo_obj,
+            filename=context["review"].filepath,
+            commit_id=context["review"].commit,
         ).splitlines()
         d = difflib.HtmlDiff()
         context["patch"] = d.make_table(
@@ -367,7 +377,7 @@ def fetch_repository_file(request, repository_id):
     return HttpResponseBadRequest("Can't fetch this file")
 
 
-# TODO remove duplication vote in views
+# TODO remove duplication code in (review_vote,note_vote)
 def review_vote(request, review_id):
     if request.headers.get("x-requested-with") == "XMLHttpRequest" and request.method == "PUT":
         user_webfinger = generate_webfinger(request.user.username)
@@ -537,20 +547,17 @@ class CreateReview(LoginRequiredMixin, TemplateView):
         if create_review_form.is_valid() and request.user.person:
             repo = Repository.objects.get(id=self.kwargs["repository_id"])
             commit = repo.git_repo_obj.head.commit
-            vuln, _ = Vulnerability.objects.get_or_create(
-                repo=repo,
-                filename=create_review_form.cleaned_data["filename"],
-            )
-
             review = Review.objects.create(
                 headline=create_review_form.cleaned_data["headline"],
                 data=create_review_form.cleaned_data["data"],
                 author=request.user.person,
-                vulnerability=vuln,
-                commit_id=commit,
+                repository=repo,
+                filepath=create_review_form.cleaned_data["filename"],
+                commit=commit,
             )
             review.save()
         context = self.get_context_data(request, **kwargs)
+        messages.add_message(request, messages.SUCCESS, "The review was created successfully.")
         return render(
             request,
             self.template_name,
@@ -621,6 +628,7 @@ class PersonUpdateView(UpdateView):
     def get_form(self, *args, **kwargs):
         form = super(PersonUpdateView, self).get_form(*args, **kwargs)
         form.fields["summary"].widget.attrs["class"] = "textarea"
+        form.fields["summary"].help_text = ""
         form.fields["avatar"].label = ""
         return form
 

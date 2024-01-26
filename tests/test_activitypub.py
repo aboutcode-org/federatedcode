@@ -62,7 +62,8 @@ def test_person_create_review(person, vulnerability, repo):
                 "type": "Review",
                 "headline": "review vulnerablecode-data VCID-0000-0000-0000",
                 "repository": f"https://127.0.0.1:8000/repository/{repo.id}/",
-                "vulnerability": f"https://127.0.0.1:8000/vulnerability/{vulnerability.id}/",
+                "filepath": "/apache/httpd/VCID-0000-0000-0000.yml",
+                "commit": "104ccd6a7a41329b2953c96e52792a3d6a9ad8e5",
                 "content": "diff text",
             },
         }
@@ -74,8 +75,10 @@ def test_person_create_review(person, vulnerability, repo):
     review = Review.objects.get(
         headline="review vulnerablecode-data VCID-0000-0000-0000",
         author=person,
-        vulnerability=vulnerability,
+        repository=repo,
         data="diff text",
+        filepath="/apache/httpd/VCID-0000-0000-0000.yml",
+        commit="104ccd6a7a41329b2953c96e52792a3d6a9ad8e5",
         status=0,
     )
     assert json.loads(create_activity.content) == {

@@ -56,6 +56,20 @@ $(document).ready(function () {
 {% endblock %}
 {% block content %}
 
+<div class="columns is-mobile">
+    <div class="column is-half is-offset-one-quarter">
+    {% if messages %}
+        {% for message in messages %}
+            <article class="message {% if message.tags %}is-{{ message.tags }}{% endif %}">
+              <div class="message-body">
+                {{ message }}
+              </div>
+            </article>
+        {% endfor %}
+    {% endif %}
+    </div>
+</div>
+
 <div class="columns">
   <div class="column box ml-5 ">
       <h2 class="subtitle">Choose a File</h2>

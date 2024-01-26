@@ -108,7 +108,7 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
     if change_type == "A":
         package = yaml_data_b_blob.get("package")
 
-        purl = Purl.objects.create(string=package, service=default_service)
+        purl, _ = Purl.objects.get_or_create(string=package, service=default_service)
 
         for version in yaml_data_b_blob.get("versions", []):
             create_note(purl, version)
@@ -122,7 +122,7 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
         purl.save()
 
         for version_a, version_b in zip_longest(
-            yaml_data_a_blob.get("versions", []), yaml_data_b_blob.get("versions", [])
+                yaml_data_a_blob.get("versions", []), yaml_data_b_blob.get("versions", [])
         ):
             if version_b and not version_a:
                 create_note(purl, version_b)
@@ -139,8 +139,8 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
                 note.save()
 
                 update_activity = UpdateActivity(actor=purl.to_ap, object=note.to_ap)
-                Activity.federated(
-                    to=purl.followers_inboxes,
+                Activity.federate(
+                    targets=purl.followers_inboxes,
                     body=update_activity.to_ap(),
                     key_id=purl.key_id,
                 )
@@ -155,11 +155,11 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
 
 
 def create_note(purl, version):
-    note = Note.objects.create(acct=purl.acct, content=saneyaml.dump(version))
+    note, _ = Note.objects.get_or_create(acct=purl.acct, content=saneyaml.dump(version))
     purl.notes.add(note)
     create_activity = CreateActivity(actor=purl.to_ap, object=note.to_ap)
-    Activity.federated(
-        to=purl.followers_inboxes,
+    Activity.federate(
+        targets=purl.followers_inboxes,
         body=create_activity.to_ap(),
         key_id=purl.key_id,
     )
@@ -172,8 +172,8 @@ def delete_note(purl, version):
     purl.notes.remove(note)
 
     deleted_activity = DeleteActivity(actor=purl.to_ap, object=note_ap)
-    Activity.federated(
-        to=purl.followers_inboxes,
+    Activity.federate(
+        targets=purl.followers_inboxes,
         body=deleted_activity.to_ap,
         key_id=purl.key_id,
     )

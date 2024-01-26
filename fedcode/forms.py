@@ -20,6 +20,10 @@ class CreateGitRepoForm(forms.ModelForm):
     class Meta:
         model = Repository
         fields = ["name", "url"]
+        help_texts = {
+            'name': None,
+            'url': None,
+        }
 
     def __init__(self, *args, **kwargs):
         super(CreateGitRepoForm, self).__init__(*args, **kwargs)
@@ -44,6 +48,9 @@ class ReviewStatusForm(forms.ModelForm):
     class Meta:
         model = Review
         fields = ["status"]
+        help_texts = {
+            'status': None,
+        }
 
     def __init__(self, *args, **kwargs):
         super(ReviewStatusForm, self).__init__(*args, **kwargs)

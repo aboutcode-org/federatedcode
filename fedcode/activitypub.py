@@ -23,7 +23,7 @@ from django.urls import resolve
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
 from federatedcode.settings import FEDERATED_CODE_GIT_PATH
 
-from .models import Follow
+from .models import Follow, FederateRequest
 from .models import Note
 from .models import Person
 from .models import Purl
@@ -32,7 +32,7 @@ from .models import Repository
 from .models import Review
 from .models import Service
 from .models import Vulnerability
-from .signatures import PURL_SYNC_PRIVATE_KEY
+from .signatures import FEDERATED_CODE_PRIVATE_KEY
 from .signatures import HttpSignature
 from .utils import fetch_actor
 from .utils import full_resolve
@@ -64,7 +64,7 @@ AP_CONTEXT = {
 
 AP_TARGET = {"cc": "https://www.w3.org/ns/activitystreams#Public"}
 
-OBJ_Page = {
+OBJ_PAGE = {
     "Note": "note-page",
     "Review": "review-page",
     "Repository": "repository-page",
@@ -138,12 +138,15 @@ class Activity:
         return ACTIVITY_MAPPER[self.type](actor=ap_actor, object=ap_object, to=self.to).save()
 
     @classmethod
-    def federated(cls, to, body, key_id):
-        for target in to:
+    def federate(cls, targets, body, key_id):
+        """
+        Send the signed request body and key_id to the targets list of domains
+        """
+        for target in targets:
             target_domain = urlparse(target).netloc
             if target_domain != FEDERATED_CODE_DOMAIN:  # TODO Add a server whitelist if necessary
                 try:
-                    HttpSignature.signed_request(target, body, PURL_SYNC_PRIVATE_KEY, key_id)
+                    FederateRequest.objects.create(target=target, body=body, key_id=key_id)
                 except Exception as e:
                     logger.error(f"{e}")
 
@@ -205,6 +208,8 @@ class ApObject:
     url: str = None
     vulnerability: str = None
     published: str = None
+    commit: str = None
+    filepath: str = None
 
     def get_object(self):
         if self.id:
@@ -234,7 +239,7 @@ class FollowActivity:
                 username=actor_details["name"], url=actor_details["id"]
             )
             actor, created = Person.objects.get_or_create(remote_actor=remote_actor)
-            Activity.federated(to=self.to, body=self.to_ap(), key_id=actor.key_id)
+            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
         # --------------------------------------------
         parser = urlparse(self.object.id)
         resolver = resolve(parser.path)
@@ -256,7 +261,7 @@ class FollowActivity:
             purl, created = Purl.objects.get_or_create(
                 remote_actor=remote_actor, string=purl_details["string"]
             )
-            Activity.federated(to=self.to, body=self.to_ap(), key_id=actor.key_id)
+            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
         if purl and actor:
             Follow.objects.get_or_create(person=actor, purl=purl)
             return self.succeeded_ap_rs()
@@ -308,17 +313,20 @@ class CreateActivity:
                     content=self.object.content,
                     reply_to=reply_to,
                 )
-            elif self.object.type == "Review" and self.object.vulnerability:
-                obj_id, page_name = full_resolve(self.object.vulnerability)
-                vulnerability = Vulnerability.objects.get(id=obj_id["vulnerability_id"])
+            elif self.object.type == "Review" and self.object.repository:
+                obj_id, page_name = full_resolve(self.object.repository)
+                repo = Repository.objects.get(id=obj_id["repository_id"])
 
                 new_obj, created = Review.objects.get_or_create(
                     headline=self.object.headline,
                     author=actor,
-                    vulnerability=vulnerability,
+                    filepath=self.object.filepath,
+                    repository=repo,
                     data=self.object.content,
+                    commit=self.object.commit,
+                    status=0,  # OPEN
                 )
-            Activity.federated(to=self.to, body=self.to_ap(), key_id=actor.key_id)
+            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
         elif isinstance(actor, Purl):
             if self.object.type == "Note":
                 reply_to = None
@@ -331,7 +339,7 @@ class CreateActivity:
                     content=self.object.content,
                     reply_to=reply_to,
                 )
-            Activity.federated(to=self.to, body=self.to_ap(), key_id=actor.key_id)
+            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
         elif isinstance(actor, Service):
             if self.object.type == "Repository":
                 new_obj, created = Repository.objects.get_or_create(
@@ -346,7 +354,7 @@ class CreateActivity:
     def succeeded_ap_rs(self, new_obj):
         """Response for successfully deleting the object"""
         return JsonResponse(
-            {"Location": full_reverse(OBJ_Page[self.object.type], new_obj.id)},
+            {"Location": full_reverse(OBJ_PAGE[self.object.type], new_obj.id)},
             status=201,
         )
 
@@ -387,16 +395,16 @@ class UpdateActivity:
         }
 
         if (
-            (isinstance(actor, Person) and self.object.type in ["Note", "Review"])
-            or (isinstance(actor, Service) and self.object.type == "Repository")
-            or (isinstance(actor, Purl) and self.object.type == "Note")
+                (isinstance(actor, Person) and self.object.type in ["Note", "Review"])
+                or (isinstance(actor, Service) and self.object.type == "Repository")
+                or (isinstance(actor, Purl) and self.object.type == "Note")
         ):
             for key, value in updated_param[self.object.type].items():
                 if value:
                     setattr(old_obj, key, value)
             old_obj.save()
 
-        Activity.federated(to=self.to, body=self.to_ap(), key_id=actor.key_id)
+        Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
         return self.succeeded_ap_rs(old_obj.to_ap)
 
     def succeeded_ap_rs(self, update_obj):
@@ -432,13 +440,13 @@ class DeleteActivity:
             return self.failed_ap_rs()
 
         if (
-            (type(actor) is Person and self.object.type in ["Note", "Review"])
-            or (type(actor) is Purl and self.object.type in ["Note"])
-            or (type(actor) is Service and self.object.type == ["Repository", "Purl"])
+                (type(actor) is Person and self.object.type in ["Note", "Review"])
+                or (type(actor) is Purl and self.object.type in ["Note"])
+                or (type(actor) is Service and self.object.type == ["Repository", "Purl"])
         ):
             instance = self.object.get_object()
             instance.delete()
-            Activity.federated(to=self.to, body=self.to_ap(), key_id=actor.key_id)
+            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
             return self.succeeded_ap_rs()
         else:
             return self.failed_ap_rs()

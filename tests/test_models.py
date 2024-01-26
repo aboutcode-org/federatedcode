@@ -97,18 +97,19 @@ def repo(db, service, mute_post_save_signal):
 def vulnerability(db, repo):
     return Vulnerability.objects.create(
         repo=repo,
-        filename="VCID-rf6e-vjeu-aaae.json",
+        filename="VCID-rf6e-vjeu-aaae",
     )
 
 
 @pytest.fixture
-def review(db, vulnerability, person):
+def review(db, repo, person):
     return Review.objects.create(
         headline="Review title 1",
         author=person,
-        vulnerability=vulnerability,
+        repository=repo,
+        filepath="/apache/httpd/VCID-1a68-fd5t-aaam.yml",
         data="text diff",
-        commit_id="49d8c5fd4bea9488186a832b13ebdc83484f1b6a",
+        commit="49d8c5fd4bea9488186a832b13ebdc83484f1b6a",
     )
 
 
@@ -130,18 +131,19 @@ def test_follow(follow, purl, person):
     assert follow.person.user == person.user
 
 
-def test_review(review, person, vulnerability):
+def test_review(review, person, repo):
     assert review.headline == "Review title 1"
     assert review.author == person
-    assert review.vulnerability == vulnerability
+    assert review.repository == repo
+    assert review.filepath == "/apache/httpd/VCID-1a68-fd5t-aaam.yml"
     assert review.data == "text diff"
     assert review.status == 0
-    assert review.commit_id == "49d8c5fd4bea9488186a832b13ebdc83484f1b6a"
+    assert review.commit == "49d8c5fd4bea9488186a832b13ebdc83484f1b6a"
 
 
 def test_vulnerability(vulnerability, repo):
     assert vulnerability.repo == repo
-    assert vulnerability.filename == "VCID-rf6e-vjeu-aaae.json"
+    assert vulnerability.filename == "VCID-rf6e-vjeu-aaae"
 
 
 @pytest.fixture(autouse=True)
