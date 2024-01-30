@@ -29,17 +29,17 @@ def sync_task():
                 sync_r.save()
 
 
-
 def send_fed_req_task():
     """
     send_fed_req_task is a task to send the http signed request to the target and save the status of the request
     """
     for rq in FederateRequest.objects.all().order_by('created_at'):
-        try:
-            HttpSignature.signed_request(rq.target, rq.body, FEDERATED_CODE_PRIVATE_KEY, rq.key_id)
-            rq.done = True
-            rq.save()
-        except Exception as e:
-            rq.error_message = e
-        finally:
-            rq.save()
+        if not rq.done:
+            try:
+                HttpSignature.signed_request(rq.target, rq.body, FEDERATED_CODE_PRIVATE_KEY, rq.key_id)
+                rq.done = True
+                rq.save()
+            except Exception as e:
+                rq.error_message = e
+            finally:
+                rq.save()

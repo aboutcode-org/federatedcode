@@ -4,6 +4,7 @@ from .test_models import mute_post_save_signal
 from .test_models import note
 from .test_models import package
 from .test_models import person
+from .test_models import rep
 from .test_models import repo
 from .test_models import review
 from .test_models import service
@@ -48,7 +49,7 @@ def test_actors_to_ap(person, package, service):
 
 
 @pytest.mark.django_db
-def test_objects_to_ap(repo, review, vulnerability, note, mute_post_save_signal):
+def test_objects_to_ap(repo, review, vulnerability, note, rep, mute_post_save_signal):
     assert repo.to_ap == {
         "id": f"https://127.0.0.1:8000/repository/{repo.id}/",
         "type": "Repository",
@@ -80,4 +81,15 @@ def test_objects_to_ap(repo, review, vulnerability, note, mute_post_save_signal)
         "id": f"https://127.0.0.1:8000/notes/{note.id}",
         "author": note.acct,
         "content": note.content,
+    }
+
+    assert rep.to_ap == {
+        "type": "Like",
+        "actor": "ziad@vcio",
+        "object": {
+            "type": "Note",
+            "id": f"https://127.0.0.1:8000/notes/{note.id}",
+            "author": note.acct,
+            "content": note.content,
+        },
     }

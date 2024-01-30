@@ -17,6 +17,7 @@ from fedcode.models import Package
 from fedcode.models import Person
 from fedcode.models import RemoteActor
 from fedcode.models import Repository
+from fedcode.models import Reputation
 from fedcode.models import Review
 from fedcode.models import Service
 from fedcode.models import Vulnerability
@@ -125,6 +126,15 @@ def follow(db, package, person):
     return Follow.objects.create(package=package, person=person)
 
 
+@pytest.fixture
+def rep(db, note):
+    return Reputation.objects.create(
+        voter="ziad@vcio",
+        positive=True,
+        content_object=note,
+    )
+
+
 def test_follow(follow, package, person):
     assert follow.package.purl == package.purl
     assert follow.person.user == person.user
@@ -138,6 +148,12 @@ def test_review(review, person, repo):
     assert review.data == "text diff"
     assert review.status == 0
     assert review.commit == "49d8c5fd4bea9488186a832b13ebdc83484f1b6a"
+
+
+def test_reputation(rep, note):
+    assert rep.voter == "ziad@vcio"
+    assert rep.positive is True
+    assert rep.content_object == note
 
 
 def test_vulnerability(vulnerability, repo):

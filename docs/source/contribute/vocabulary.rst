@@ -1,7 +1,7 @@
 .. _vocabulary:
 
 FederatedCode Vocabulary
-============
+=========================
 FederatedCode Vocabulary’s intended to be an extension of
 `Activity Vocabulary <https://www.w3.org/TR/activitystreams-vocabulary/>`__.
 
@@ -57,6 +57,7 @@ Service
         "type": "Service",
         "name": "vcio"
     }
+
 Activity
 ********
 
@@ -88,6 +89,7 @@ Create
                 "url": "https://github.com/nexB/vulnerablecode-data",
             },
         }
+
 Update
 -------
   .. code-block:: JSON
@@ -102,6 +104,7 @@ Update
                 "content": "Hello World!",
             },
         }
+
 Delete
 -------
   .. code-block:: JSON
@@ -144,6 +147,7 @@ Sync
                 "id": "https://127.0.0.1:8000/repository/3701d4b6-a7cf-41ee-9144-35f9d70afe0b/",
             },
         }
+
 Objects
 ********
 
@@ -201,7 +205,7 @@ Review
         "updated": "2015-02-10T15:04:55Z",
     }
 Repository
------------
+------------
   .. code-block:: JSON
 
     {
@@ -211,7 +215,7 @@ Repository
     }
 
 Vulnerability
--------------
+---------------
   .. code-block:: JSON
 
     {
@@ -238,7 +242,7 @@ Like
     }
 
 Dislike
-------
+--------
   .. code-block:: JSON
 
     {
