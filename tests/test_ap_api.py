@@ -30,8 +30,8 @@ from federatedcode.settings import AP_CONTENT_TYPE
 from .test_models import follow
 from .test_models import mute_post_save_signal
 from .test_models import note
+from .test_models import package
 from .test_models import person
-from .test_models import purl
 from .test_models import repo
 from .test_models import review
 from .test_models import service
@@ -91,25 +91,26 @@ def test_get_ap_profile_user(person, service):
 
 
 @pytest.mark.django_db
-def test_get_ap_profile_purl(purl):
+def test_get_ap_profile_package(package):
     client = APIClient()
     response = client.get(
-        reverse("purl-ap-profile", args=[purl.string]),
+        reverse("purl-ap-profile", args=[package.purl]),
         headers={"Content-Type": AP_CONTENT_TYPE},
         format="json",
     )
     assert json.loads(response.content) == {
-        "followers": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/followers/",
         "id": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
-        "inbox": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/inbox",
+        "type": "Package",
+        "purl": "pkg:maven/org.apache.logging",
         "name": "vcio",
+        "followers": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/followers/",
+        "inbox": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/inbox",
         "outbox": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/outbox",
         "publicKey": {
             "id": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
             "owner": "https://127.0.0.1:8000/api/v0/users/@vcio",
             "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC " "KEY-----",
         },
-        "type": "Purl",
     }
 
 
@@ -134,10 +135,10 @@ def test_get_user_inbox_empty(person):
 
 
 @pytest.mark.django_db
-def test_get_user_inbox(person, vulnerability, review, purl):
-    note1 = Note.objects.create(acct=purl.acct, content="yaml data1")
-    note2 = Note.objects.create(acct=purl.acct, content="yaml data2")
-    Follow.objects.create(person=person, purl=purl)
+def test_get_user_inbox(person, vulnerability, review, package):
+    note1 = Note.objects.create(acct=package.acct, content="yaml data1")
+    note2 = Note.objects.create(acct=package.acct, content="yaml data2")
+    Follow.objects.create(person=person, package=package)
 
     client = APIClient(enforce_csrf_checks=True)
     auth = create_token(person.user)
@@ -279,13 +280,13 @@ def test_post_user_outbox(person):
 
 
 @pytest.mark.django_db
-def test_get_purl_inbox_empty(purl, service):
+def test_get_package_inbox_empty(package, service):
     client = APIClient()
     auth = create_token(service.user)
     client.credentials(HTTP_AUTHORIZATION=auth)
 
     response = client.get(
-        reverse("purl-inbox", args=[purl.string]),
+        reverse("purl-inbox", args=[package.purl]),
         headers={"Content-Type": AP_CONTENT_TYPE},
         format="json",
     )
@@ -296,19 +297,19 @@ def test_get_purl_inbox_empty(purl, service):
 
 
 @pytest.mark.django_db
-def test_get_purl_inbox(purl, service):
+def test_get_package_inbox(package, service):
     note1 = Note.objects.create(
-        acct=purl.acct,
+        acct=package.acct,
         content="""purl: pkg:maven/org.apache.logging@2.23-r0?arch=aarch64&distroversion=edge&reponame=community
          affected_by_vulnerabilities: [] fixing_vulnerabilities: []""",
     )
-    purl.notes.add(note1)
+    package.notes.add(note1)
     client = APIClient()
     auth = create_token(service.user)
     client.credentials(HTTP_AUTHORIZATION=auth)
 
     response = client.get(
-        reverse("purl-inbox", args=[purl.string]),
+        reverse("purl-inbox", args=[package.purl]),
         headers={"Content-Type": AP_CONTENT_TYPE},
         format="json",
     )
@@ -333,15 +334,15 @@ def test_get_purl_inbox(purl, service):
 
 
 @pytest.mark.django_db
-def test_get_purl_outbox(service, purl):
+def test_get_package_outbox(service, package):
     client = APIClient()
     auth = create_token(service.user)
     client.credentials(HTTP_AUTHORIZATION=auth)
-    note1 = Note.objects.create(acct=purl.acct, content="yaml data1")
-    purl.notes.add(note1)
+    note1 = Note.objects.create(acct=package.acct, content="yaml data1")
+    package.notes.add(note1)
 
     response = client.get(
-        reverse("purl-outbox", args=[purl.string]),
+        reverse("purl-outbox", args=[package.purl]),
         headers={"Content-Type": AP_CONTENT_TYPE},
         format="json",
     )

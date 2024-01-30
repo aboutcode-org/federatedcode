@@ -18,7 +18,7 @@ from fedcode.activitypub import CreateActivity
 from fedcode.activitypub import DeleteActivity
 from fedcode.activitypub import UpdateActivity
 from fedcode.models import Note
-from fedcode.models import Purl
+from fedcode.models import Package
 from fedcode.models import Repository
 from fedcode.models import Service
 from fedcode.models import Vulnerability
@@ -64,7 +64,8 @@ class Importer:
             if os.path.split(diff.a_path)[1].startswith("VCID") or os.path.split(diff.b_path)[
                 1
             ].startswith("VCID"):
-                vul_handler(diff.change_type, self.repo_obj, yaml_data_a_blob, yaml_data_b_blob)
+                vul_handler(diff.change_type, self.repo_obj, yaml_data_a_blob, yaml_data_b_blob,
+                            diff.a_path, diff.b_path)
                 continue
 
             pkg_handler(
@@ -78,11 +79,12 @@ class Importer:
         logger.info("The Importer run successfully")
 
 
-def vul_handler(change_type, repo_obj, yaml_data_a_blob, yaml_data_b_blob):
+def vul_handler(change_type, repo_obj, yaml_data_a_blob, yaml_data_b_blob, a_path, b_path):
     if change_type == "A":  # A for added paths
         Vulnerability.objects.get_or_create(
             repo=repo_obj,
             filename=yaml_data_b_blob.get("vulnerability_id"),
+            filepath=b_path
         )
     elif change_type in [
         "M",
@@ -91,6 +93,7 @@ def vul_handler(change_type, repo_obj, yaml_data_a_blob, yaml_data_b_blob):
         vul = Vulnerability.objects.get(
             repo=repo_obj,
             filename=yaml_data_a_blob.get("vulnerability_id"),
+            # filepath=a_path, b_path
         )
         vul.filename = yaml_data_b_blob.get("vulnerability_id")
         vul.save()
@@ -98,6 +101,7 @@ def vul_handler(change_type, repo_obj, yaml_data_a_blob, yaml_data_b_blob):
         vul = Vulnerability.objects.filter(
             repo=repo_obj,
             filename=yaml_data_a_blob.get("vulnerability_id"),
+            filepath=a_path,
         )
         vul.delete()
     else:
@@ -108,72 +112,72 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
     if change_type == "A":
         package = yaml_data_b_blob.get("package")
 
-        purl, _ = Purl.objects.get_or_create(string=package, service=default_service)
+        pkg, _ = Package.objects.get_or_create(purl=package, service=default_service)
 
         for version in yaml_data_b_blob.get("versions", []):
-            create_note(purl, version)
+            create_note(pkg, version)
+
 
     elif change_type == "M":
         old_package = yaml_data_a_blob.get("package")
         new_package = yaml_data_b_blob.get("package")
 
-        purl = Purl.objects.get(string=old_package, service=default_service)
-        purl.string = new_package
-        purl.save()
+        pkg = Package.objects.get(purl=old_package, service=default_service)
+        pkg.purl = new_package
+        pkg.save()
 
         for version_a, version_b in zip_longest(
                 yaml_data_a_blob.get("versions", []), yaml_data_b_blob.get("versions", [])
         ):
             if version_b and not version_a:
-                create_note(purl, version_b)
+                create_note(pkg, version_b)
 
             if version_a and not version_b:
-                delete_note(purl, version_a)
+                delete_note(pkg, version_a)
 
             if version_a and version_b:
-                note = Note.objects.get(acct=purl.acct, content=saneyaml.dump(version_a))
+                note = Note.objects.get(acct=pkg.acct, content=saneyaml.dump(version_a))
                 if note.content == saneyaml.dump(version_b):
                     continue
 
                 note.content = saneyaml.dump(version_b)
                 note.save()
 
-                update_activity = UpdateActivity(actor=purl.to_ap, object=note.to_ap)
+                update_activity = UpdateActivity(actor=pkg.to_ap, object=note.to_ap)
                 Activity.federate(
-                    targets=purl.followers_inboxes,
+                    targets=pkg.followers_inboxes,
                     body=update_activity.to_ap(),
-                    key_id=purl.key_id,
+                    key_id=pkg.key_id,
                 )
 
     elif change_type == "D":
         package = yaml_data_a_blob.get("package")
-        purl = Purl.objects.get(string=package, service=default_service)
+        pkg = Package.objects.get(purl=package, service=default_service)
         for version in yaml_data_a_blob.get("versions", []):
-            delete_note(purl, version)
+            delete_note(pkg, version)
+        pkg.delete()
 
-        purl.delete()
 
-
-def create_note(purl, version):
-    note, _ = Note.objects.get_or_create(acct=purl.acct, content=saneyaml.dump(version))
-    purl.notes.add(note)
-    create_activity = CreateActivity(actor=purl.to_ap, object=note.to_ap)
+def create_note(pkg, version):
+    note, _ = Note.objects.get_or_create(acct=pkg.acct, content=saneyaml.dump(version))
+    pkg.notes.add(note)
+    create_activity = CreateActivity(actor=pkg.to_ap, object=note.to_ap)
     Activity.federate(
-        targets=purl.followers_inboxes,
+        targets=pkg.followers_inboxes,
         body=create_activity.to_ap(),
-        key_id=purl.key_id,
+        key_id=pkg.key_id,
     )
 
 
-def delete_note(purl, version):
-    note = Note.objects.get(acct=purl.acct, content=saneyaml.dump(version))
+def delete_note(pkg, version):
+    note = Note.objects.get(acct=pkg.acct, content=saneyaml.dump(version))
     note_ap = note.to_ap
     note.delete()
-    purl.notes.remove(note)
+    pkg.notes.remove(note)
 
-    deleted_activity = DeleteActivity(actor=purl.to_ap, object=note_ap)
+    deleted_activity = DeleteActivity(actor=pkg.to_ap, object=note_ap)
     Activity.federate(
-        targets=purl.followers_inboxes,
+        targets=pkg.followers_inboxes,
         body=deleted_activity.to_ap,
-        key_id=purl.key_id,
+        key_id=pkg.key_id,
     )

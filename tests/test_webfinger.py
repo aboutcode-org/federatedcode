@@ -14,13 +14,13 @@ from django.test import Client
 from fedcode.utils import generate_webfinger
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
 
+from .test_models import package
 from .test_models import person
-from .test_models import purl
 from .test_models import service
 
 
 @pytest.mark.django_db
-def test_webfinger(person, service, purl):
+def test_webfinger(person, service, package):
     client = Client()
     person_acct = "acct:" + generate_webfinger(person.user.username)
     response_person = client.get(
@@ -32,9 +32,9 @@ def test_webfinger(person, service, purl):
         f"/.well-known/webfinger?resource={service_acct}",
     )
 
-    purl_acct = "acct:" + generate_webfinger(purl.string)
+    package_acct = "acct:" + generate_webfinger(package.purl)
     response_purl = client.get(
-        f"/.well-known/webfinger?resource={purl_acct}",
+        f"/.well-known/webfinger?resource={package_acct}",
     )
 
     assert json.loads(response_person.content) == {
@@ -70,17 +70,17 @@ def test_webfinger(person, service, purl):
     }
 
     assert json.loads(response_purl.content) == {
-        "subject": purl_acct,
+        "subject": package_acct,
         "links": [
             {
                 "rel": "https://webfinger.net/rel/profile-page",
                 "type": "text/html",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/purls/@{ purl.string }",
+                "href": f"https://{FEDERATED_CODE_DOMAIN}/purls/@{ package.purl }",
             },
             {
                 "rel": "self",
                 "type": "application/activity+json",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/api/v0/purls/@{ purl.string }",
+                "href": f"https://{FEDERATED_CODE_DOMAIN}/api/v0/purls/@{ package.purl }",
             },
         ],
     }

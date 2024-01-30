@@ -54,7 +54,7 @@ Your Profile
         {% endif %}
         {% for following in followings %}
           <a class="panel-block is-active" href="#">
-            <a href="{% url 'purl-profile' following.purl.string %}" class="button is-fullwidth" >{{ following.purl.string }}@{{ following.purl.service.user.username }}</a>
+            <a href="{% url 'purl-profile' following.package.purl %}" class="button is-fullwidth" >{{ following.package.purl }}@{{ following.package.service.user.username }}</a>
           </a>
         {% endfor %}
       </article>

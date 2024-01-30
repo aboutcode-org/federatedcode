@@ -13,21 +13,21 @@ from django.urls import include
 from django.urls import path
 
 from fedcode import views
-from fedcode.views import CreateReview, logout
+from fedcode.views import CreateReview, logout, obj_vote
 from fedcode.views import CreateSync
 from fedcode.views import CreatGitView
-from fedcode.views import FollowPurlView
+from fedcode.views import FollowPackageView
 from fedcode.views import HomeView
 from fedcode.views import NoteView
 from fedcode.views import PersonSignUp
 from fedcode.views import PersonUpdateView
 from fedcode.views import PersonView
-from fedcode.views import PurlFollowers
-from fedcode.views import PurlInbox
-from fedcode.views import PurlListView
-from fedcode.views import PurlOutbox
-from fedcode.views import PurlProfile
-from fedcode.views import PurlView
+from fedcode.views import PackageFollowers
+from fedcode.views import PackageInbox
+from fedcode.views import PackageListView
+from fedcode.views import PackageOutbox
+from fedcode.views import PackageProfile
+from fedcode.views import PackageView
 from fedcode.views import RepositoryListView
 from fedcode.views import ReviewListView
 from fedcode.views import ReviewView
@@ -38,10 +38,8 @@ from fedcode.views import UserOutbox
 from fedcode.views import UserProfile
 from fedcode.views import WebfingerView
 from fedcode.views import fetch_repository_file
-from fedcode.views import note_vote
 from fedcode.views import redirect_repository
 from fedcode.views import redirect_vulnerability
-from fedcode.views import review_vote
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -49,14 +47,14 @@ urlpatterns = [
     path("", HomeView.as_view(), name="home-page"),
     path("users/@<str:slug>", PersonView.as_view(), name="user-profile"),
     path("users/@<str:slug>/edit", PersonUpdateView.as_view(), name="user-edit"),
-    path("purls/@<path:slug>/", PurlView.as_view(), name="purl-profile"),
-    path("purls/@<path:purl_string>/follow", FollowPurlView.as_view(), name="purl-follow"),
+    path("purls/@<path:slug>/", PackageView.as_view(), name="purl-profile"),
+    path("purls/@<path:purl_string>/follow", FollowPackageView.as_view(), name="purl-follow"),
     path("accounts/sign-up", PersonSignUp.as_view(), name="signup"),
     path("accounts/login/", UserLogin.as_view(), name="login"),
     path("accounts/logout", logout, name="logout"),
     path("create-repo", CreatGitView.as_view(), name="repo-create"),
     path("repo-list", RepositoryListView.as_view(), name="repo-list"),
-    path("purl-list", PurlListView.as_view(), name="purl-list"),
+    path("purl-list", PackageListView.as_view(), name="purl-list"),
     path(
         "repository/<uuid:repository_id>/create-review/",
         CreateReview.as_view(),
@@ -69,8 +67,8 @@ urlpatterns = [
     ),
     path("review-list", ReviewListView.as_view(), name="review-list"),
     path("reviews/<uuid:review_id>/", ReviewView.as_view(), name="review-page"),
-    path("reviews/<uuid:review_id>/votes/", review_vote, name="review-votes"),
-    path("notes/<uuid:note_id>/votes/", note_vote, name="comment-votes"),
+    path("reviews/<uuid:obj_id>/votes/", obj_vote, {'obj_type': 'review'}, name="review-votes"),
+    path("notes/<uuid:obj_id>/votes/", obj_vote, {'obj_type': 'note'},  name="comment-votes"),
     path("repository/<uuid:repository_id>/", redirect_repository, name="repository-page"),
     path(
         "repository/<uuid:repository_id>/fetch",
@@ -86,15 +84,15 @@ urlpatterns = [
     path("api/v0/users/@<str:username>", UserProfile.as_view(), name="user-ap-profile"),
     path(
         "api/v0/purls/@<path:purl_string>/",
-        PurlProfile.as_view(),
+        PackageProfile.as_view(),
         name="purl-ap-profile",
     ),
     path("api/v0/users/@<str:username>/inbox", UserInbox.as_view(), name="user-inbox"),
     path("api/v0/users/@<str:username>/outbox", UserOutbox.as_view(), name="user-outbox"),
-    path("api/v0/purls/@<path:purl_string>/inbox", PurlInbox.as_view(), name="purl-inbox"),
+    path("api/v0/purls/@<path:purl_string>/inbox", PackageInbox.as_view(), name="purl-inbox"),
     path(
         "api/v0/purls/@<path:purl_string>/outbox",
-        PurlOutbox.as_view(),
+        PackageOutbox.as_view(),
         name="purl-outbox",
     ),
     path(
@@ -104,7 +102,7 @@ urlpatterns = [
     ),
     path(
         "api/v0/purls/@<path:purl_string>/followers/",
-        PurlFollowers.as_view(),
+        PackageFollowers.as_view(),
         name="purl-followers",
     ),
     path("auth/token/", views.token),

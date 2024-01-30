@@ -2,8 +2,8 @@ import pytest
 
 from .test_models import mute_post_save_signal
 from .test_models import note
+from .test_models import package
 from .test_models import person
-from .test_models import purl
 from .test_models import repo
 from .test_models import review
 from .test_models import service
@@ -11,7 +11,7 @@ from .test_models import vulnerability
 
 
 @pytest.mark.django_db
-def test_actors_to_ap(person, purl, service):
+def test_actors_to_ap(person, package, service):
     assert person.to_ap == {
         "id": "https://127.0.0.1:8000/api/v0/users/@ziad",
         "type": "Person",
@@ -27,12 +27,13 @@ def test_actors_to_ap(person, purl, service):
             "publicKeyPem": "-----BEGIN PUBLIC KEY-----...-----END PUBLIC KEY-----",
         },
     }
-    assert purl.to_ap == {
-        "type": "Purl",
-        "followers": f"https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/followers/",
+    assert package.to_ap == {
         "id": f"https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
+        "type": "Package",
+        "purl": "pkg:maven/org.apache.logging",
+        "name": "vcio",
+        "followers": f"https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/followers/",
         "inbox": f"https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/inbox",
-        "name": f"vcio",
         "outbox": f"https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/outbox",
         "publicKey": {
             "id": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
@@ -53,6 +54,7 @@ def test_objects_to_ap(repo, review, vulnerability, note, mute_post_save_signal)
         "type": "Repository",
         "url": "https://github.com/nexB/fake-repo",
     }
+
     assert review.to_ap == {
         "id": f"https://127.0.0.1:8000/reviews/{review.id}/",
         "type": "Review",
@@ -70,6 +72,7 @@ def test_objects_to_ap(repo, review, vulnerability, note, mute_post_save_signal)
         "type": "Vulnerability",
         "id": f"https://127.0.0.1:8000/vulnerability/{vulnerability.id}/",
         "filename": vulnerability.filename,
+        "filepath": vulnerability.filepath,
         "repository": f"https://127.0.0.1:8000/repository/{vulnerability.repo.id}/",
     }
     assert note.to_ap == {

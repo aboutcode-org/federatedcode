@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}
 Review page
 {% endblock %}
@@ -21,73 +22,7 @@ Review page
         .diff_chg {background-color:#ffff77}
         .diff_sub {background-color:#ffaaaa}
 </style>
-<script type="text/javascript">
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== "") {
-    const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + "=")) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-function sendVote(url, submit_button, current_value) {
-   $.ajax({
-      type: "PUT",
-      url: url,
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-        "X-CSRFToken": getCookie("csrftoken"),
-      },
-      data: JSON.stringify({"vote-type": submit_button.attr("name")}),
-      dataType: "json",
-      success: (data) => {
-          console.log(data);
-          if ((submit_button.attr("name") === "vote-up-review" && data["deleted"] === false) ||
-              (submit_button.attr("name") === "vote-down-review" && data["deleted"] === true)){
-              $("#votes-value").text(parseInt(parseFloat(current_value)) + 1);
-          }
-
-          if ((submit_button.attr("name") === "vote-down-review" && data["deleted"] === false )||
-              (submit_button.attr("name") === "vote-up-review" && data["deleted"] === true ))
-          {
-              $("#votes-value").text(parseInt(parseFloat(current_value)) - 1);
-          }
-      },
-      error: (error) => {
-        console.log(error);
-      }
-   });
-}
-$(document).ready(function () {
-    $("form[name='vote-review']").submit(function (event) {
-      event.preventDefault();
-      let submit_button = $(event.originalEvent.submitter);
-      if ((submit_button.attr("name") === "vote-up-review") ||
-          (submit_button.attr("name") === "vote-down-review")) {
-          let url = "/reviews/{{ review.id}}/votes/"
-          let current_value = $("#votes-value").text();
-          sendVote(url, submit_button , current_value);
-       }
-    });
-
-    $("form[name='vote-notes']").submit(function (event) {
-      event.preventDefault();
-      let submit_button = $(event.originalEvent.submitter);
-      if ((submit_button.attr("name") === "vote-up-note") ||
-          (submit_button.attr("name") === "vote-down-note")) {
-          let url = "/notes/"+ submit_button.attr("value") +"/votes/"
-          let current_value = $("#votes-value").text();
-          sendVote(url, submit_button, current_value);
-      }
-  });
-});
-</script>
+<script src="{% static 'js/vote.js' %}"></script>
 {% endblock %}
 {% block content %}
 <h1 class="title has-text-centered">
@@ -113,18 +48,18 @@ $(document).ready(function () {
 
       <div class="panel-block" style="justify-content: center">
           <form class="level-left" name="vote-review">
-            <button class="button is-fullwidth mr-3 ml-3" name="vote-up-review" value="{{ review.id }}">
+            <button class="button is-fullwidth mr-3 ml-3" name="vote-up" value="{{ review.id }}">
               Vote up ▲
             </button>
 
             <div class="level-item has-text-centered mr-3 ml-3 mt-5 mb-5">
                 <div>
                   <p class="heading">Votes</p>
-                  <p class="title" id="votes-value">{{ review.reputation_value }}</p>
+                  <p class="title" name="{{ review.id }}" >{{ review.reputation_value }}</p>
                 </div>
             </div>
 
-            <button class="button is-fullwidth mr-3 ml-3" name="vote-down-review" value="{{ review.id }}">
+            <button class="button is-fullwidth mr-3 ml-3" name="vote-down" value="{{ review.id }}">
               Vote down ▼
             </button>
           </form>
@@ -139,11 +74,11 @@ $(document).ready(function () {
           <article class="media">
               <form class="ml-5 mr-4" name="vote-notes">
                   <span class="icon ml-1">
-                       <button name="vote-up-note" class="button is-rounded is-white" value="{{ note.id }}" type="submit">▲</button>
+                       <button name="vote-up" class="button is-rounded is-white" value="{{ note.id }}" type="submit">▲</button>
                   </span>
-                  <p class="ml-3 mt-1 mb-1">{{ note.reputation_value }}</p>
+                  <p class="ml-3 mt-1 mb-1" name="{{ note.id }}" >{{ note.reputation_value }}</p>
                   <span class="icon ml-1">
-                       <button name="vote-down-note" class="button is-rounded is-white" value="{{ note.id }}"  type="submit">▼</button>
+                       <button name="vote-down" class="button is-rounded is-white" value="{{ note.id }}"  type="submit">▼</button>
                   </span>
               </form>
               <div class="media-content">

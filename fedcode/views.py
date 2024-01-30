@@ -13,6 +13,7 @@ import os.path
 
 import requests
 from django.contrib.auth import login
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
@@ -40,10 +41,10 @@ from django.views.generic.edit import UpdateView
 
 from fedcode.forms import FetchForm
 from fedcode.forms import PersonSignUpForm
-from fedcode.forms import SearchPurlForm
+from fedcode.forms import SearchPackageForm
 from fedcode.forms import SearchRepositoryForm
 from fedcode.forms import SearchReviewForm
-from fedcode.forms import SubscribePurlForm
+from fedcode.forms import SubscribePackageForm
 from federatedcode.settings import AP_CONTENT_TYPE, FEDERATED_CODE_GIT_PATH
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
 from federatedcode.settings import env
@@ -55,11 +56,10 @@ from .forms import CreateGitRepoForm
 from .forms import CreateNoteForm
 from .forms import CreateReviewForm
 from .forms import ReviewStatusForm
-from .importer import Importer
 from .models import Follow, SyncRequest
 from .models import Note
 from .models import Person
-from .models import Purl
+from .models import Package
 from .models import Repository
 from .models import Reputation
 from .models import Review
@@ -71,8 +71,8 @@ from .utils import load_git_file
 from .utils import parse_webfinger
 from .utils import webfinger_actor
 from django.contrib.auth.models import auth
-from django.db.models import Count
 from django.contrib import messages
+from django.contrib.contenttypes.models import ContentType
 
 logger = logging.getLogger(__name__)
 
@@ -100,19 +100,19 @@ class WebfingerView(View):
 
         if obj.startswith("pkg:"):
             try:
-                purl = Purl.objects.get(string=obj)
-            except Purl.DoesNotExist:
+                package = Package.objects.get(purl=obj)
+            except Package.DoesNotExist:
                 return HttpResponseBadRequest("Not an Purl resource")
 
             return render(
                 request,
-                "webfinger_purl.json",
+                "webfinger_package.json",
                 status=200,
                 content_type="application/jrd+json",
                 context={
                     "resource": resource,
                     "domain": FEDERATED_CODE_DOMAIN,
-                    "purl_string": purl.string,
+                    "purl_string": package.purl,
                 },
             )
         else:
@@ -137,11 +137,11 @@ class WebfingerView(View):
 class HomeView(View):
     def get(self, request, *args, **kwargs):
         if hasattr(self.request.user, "person"):
-            purls = [
-                generate_webfinger(follow.purl.string)
+            packages = [
+                generate_webfinger(follow.package.purl)
                 for follow in Follow.objects.filter(person=self.request.user.person)
             ]
-            note_list = Note.objects.filter(acct__in=purls).order_by("updated_at__minute")
+            note_list = Note.objects.filter(acct__in=packages).order_by("updated_at__minute")
             paginator = Paginator(note_list, 10)
             page_number = request.GET.get("page")
             page_note = paginator.get_page(page_number)
@@ -168,11 +168,11 @@ class PersonView(DetailView):
         return context
 
 
-class PurlView(DetailView, FormMixin):
-    model = Purl
-    template_name = "purl_profile.html"
-    slug_field = "string"
-    context_object_name = "purl"
+class PackageView(DetailView, FormMixin):
+    model = Package
+    template_name = "pkg_profile.html"
+    slug_field = "purl"
+    context_object_name = "package"
     form_class = CreateNoteForm
 
     def get_success_url(self):
@@ -184,17 +184,17 @@ class PurlView(DetailView, FormMixin):
 
         context["purl_notes"] = Note.objects.filter(acct=generate_webfinger(self.kwargs["slug"]))
 
-        context["followers"] = Follow.objects.filter(purl=self.object)
+        context["followers"] = Follow.objects.filter(package=self.object)
 
         if self.request.user.is_authenticated:
             context["is_user_follow"] = (
                 True
-                if Follow.objects.filter(purl=self.object, person__user=self.request.user).first()
+                if Follow.objects.filter(package=self.object, person__user=self.request.user).first()
                 else False
             )
 
         context["note_form"] = CreateNoteForm()
-        context["subscribe_form"] = SubscribePurlForm()
+        context["subscribe_form"] = SubscribePackageForm()
         return context
 
     def post(self, request, *args, **kwargs):
@@ -204,7 +204,7 @@ class PurlView(DetailView, FormMixin):
             note_form.instance.acct = generate_webfinger(self.kwargs["slug"])
             note_form.instance.note_type = 0
             note_form.save()
-            return super(PurlView, self).form_valid(note_form)
+            return super(PackageView, self).form_valid(note_form)
         else:
             return self.form_invalid(note_form)
 
@@ -229,8 +229,13 @@ class CreatGitView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         self.object = form.save(commit=False)
         self.object.admin = self.request.user.service
-        self.object.path = os.path.join(FEDERATED_CODE_GIT_PATH, form.cleaned_data["name"])
-        self.object.save()
+        try:
+            self.object.save()
+            messages.success(self.request, "Git repo successfully created")
+        except Exception as e:  #
+            logger.error(f"Error occurred while creating git repo {e}")
+            messages.error(self.request, "An error occurred")
+
         return super(CreatGitView, self).form_valid(form)
 
 
@@ -296,18 +301,18 @@ class ReviewListView(ListView, FormMixin):
         return Review.objects.all()
 
 
-class PurlListView(ListView, FormMixin):
-    model = Purl
-    context_object_name = "purl_list"
-    template_name = "purl_list.html"
+class PackageListView(ListView, FormMixin):
+    model = Package
+    context_object_name = "package_list"
+    template_name = "pkg_list.html"
     paginate_by = 20
-    form_class = SearchPurlForm
+    form_class = SearchPackageForm
 
     def get_queryset(self):
         form = self.form_class(self.request.GET)
         if form.is_valid():
-            return Purl.objects.filter(string__icontains=form.cleaned_data.get("search"))
-        return Purl.objects.all()
+            return Package.objects.filter(purl__icontains=form.cleaned_data.get("search"))
+        return Package.objects.all()
 
 
 class ReviewView(LoginRequiredMixin, TemplateView):
@@ -377,113 +382,82 @@ def fetch_repository_file(request, repository_id):
     return HttpResponseBadRequest("Can't fetch this file")
 
 
-# TODO remove duplication code in (review_vote,note_vote)
-def review_vote(request, review_id):
+@login_required
+def obj_vote(request, obj_id, obj_type):
     if request.headers.get("x-requested-with") == "XMLHttpRequest" and request.method == "PUT":
         user_webfinger = generate_webfinger(request.user.username)
-        review = Review.objects.get(id=review_id)
-        acceptor = review.author
+        if obj_type == 'review':
+            obj = get_object_or_404(Review, id=obj_id)
+        elif obj_type == 'note':
+            obj = get_object_or_404(Note, id=obj_id)
+        else:
+            return HttpResponseBadRequest("Invalid object type to vote")
+
         request_body = json.load(request)
-        if request_body.get("vote-type") == "vote-up-review":
-            rep_obj, created = Reputation.objects.get_or_create(
+        try:
+            content_type = ContentType.objects.get_for_model(Review if obj_type == 'review' else Note).id
+            rep_obj = Reputation.objects.get(
                 voter=user_webfinger,
-                acceptor=acceptor.acct,
-                positive=True,
+                object_id=obj.id,
+                content_type=content_type,
             )
-        elif request_body.get("vote-type") == "vote-down-review":
-            rep_obj, created = Reputation.objects.get_or_create(
-                voter=user_webfinger,
-                acceptor=acceptor.acct,
-                positive=False,
-            )
-        else:
-            return HttpResponseBadRequest("Invalid review-vote request")
+            if rep_obj:
+                vote_type = 'vote-down' if rep_obj.positive else 'vote-up'
+                rep_obj.delete()
+                return JsonResponse(
+                    {
+                        "message": "The vote has been removed successfully",
+                        "vote-type": vote_type,
+                    }
+                )
+        except Reputation.DoesNotExist:
+            vote_type = request_body.get("vote-type")
+            rep_obj = None
+            if vote_type == "vote-up":
+                rep_obj = Reputation.objects.create(
+                    voter=user_webfinger,
+                    content_object=obj,
+                    positive=True,
+                )
+            elif vote_type == "vote-down":
+                rep_obj = Reputation.objects.create(
+                    voter=user_webfinger,
+                    content_object=obj,
+                    positive=False,
+                ),
 
-        if not created:
-            review.reputation.remove(rep_obj)
-            rep_obj.delete()
-            return JsonResponse(
-                {
-                    "message": "The vote has been removed successfully",
-                    "vote-type": rep_obj.positive,
-                    "deleted": True,
-                }
-            )
-        else:
-            review.reputation.add(rep_obj)
-            return JsonResponse(
-                {
-                    "message": "Voting completed successfully",
-                    "vote-type": rep_obj.positive,
-                    "deleted": False,
-                }
-            )
+            else:
+                return HttpResponseBadRequest("Invalid vote-type request")
 
-    return JsonResponse(request, {"message": "successfully voted"})
-
-
-def note_vote(request, note_id):
-    if request.headers.get("x-requested-with") == "XMLHttpRequest" and request.method == "PUT":
-        user_webfinger = generate_webfinger(request.user.username)
-        note = Note.objects.get(id=note_id)
-        request_body = json.load(request)
-        if request_body.get("vote-type") == "vote-up-note":
-            rep_obj, created = Reputation.objects.get_or_create(
-                voter=user_webfinger,
-                acceptor=note.acct,
-                positive=True,
-            )
-
-        elif request_body.get("vote-type") == "vote-down-note":
-            rep_obj, created = Reputation.objects.get_or_create(
-                voter=user_webfinger,
-                acceptor=note.acct,
-                positive=False,
-            )
-
-        else:
-            return HttpResponseBadRequest("Invalid note-vote request")
-
-        if not created:
-            note.reputation.remove(rep_obj)
-            rep_obj.delete()
-            return JsonResponse(
-                {
-                    "message": "The vote has been removed successfully",
-                    "vote-type": rep_obj.positive,
-                    "deleted": True,
-                }
-            )
-        else:
-            note.reputation.add(rep_obj)
-            return JsonResponse(
-                {
-                    "message": "Voting completed successfully",
-                    "vote-type": rep_obj.positive,
-                    "deleted": False,
-                }
-            )
+            if rep_obj:
+                return JsonResponse(
+                    {
+                        "message": "Voting completed successfully",
+                        "vote-type": vote_type,
+                    }
+                )
+    return HttpResponseBadRequest("Invalid vote request")
 
 
-class FollowPurlView(View):
+class FollowPackageView(View):
     def post(self, request, *args, **kwargs):
-        purl = Purl.objects.get(string=self.kwargs["purl_string"])
+        package = Package.objects.get(purl=self.kwargs["purl_string"])
         if request.user.is_authenticated:
             if "follow" in request.POST:
                 follow_obj, _ = Follow.objects.get_or_create(
-                    person=self.request.user.person, purl=purl
+                    person=self.request.user.person, package=package
                 )
 
             elif "unfollow" in request.POST:
                 try:
-                    follow_obj = Follow.objects.get(person=self.request.user.person, purl=purl)
+                    follow_obj = Follow.objects.get(person=self.request.user.person, package=package)
                     follow_obj.delete()
                 except Follow.DoesNotExist:
                     return HttpResponseBadRequest(
                         "Some thing went wrong when you try to unfollow this purl"
                     )
         elif request.user.is_anonymous:
-            form = SubscribePurlForm(request.POST)
+            form = SubscribePackageForm(request.POST)
             if form.is_valid():
                 user, domain = parse_webfinger(form.cleaned_data.get("acct"))
                 remote_actor_url = webfinger_actor(domain, user)
@@ -498,7 +472,7 @@ class FollowPurlView(View):
                         },
                         "object": {
                             "type": "Purl",
-                            "id": purl.absolute_url_ap,
+                            "id": package.absolute_url_ap,
                         },
                         "to": [remote_actor_url],
                     }
@@ -634,18 +608,18 @@ class PersonUpdateView(UpdateView):
 
 
 @method_decorator(has_valid_header, name="dispatch")
-class PurlProfile(View):
+class PackageProfile(View):
     def get(self, request, *args, **kwargs):
         """"""
         try:
-            purl = Purl.objects.get(string=kwargs["purl_string"])
-        except Purl.DoesNotExist:
+            package = Package.objects.get(purl=kwargs["purl_string"])
+        except Package.DoesNotExist:
             return HttpResponseBadRequest("Invalid type user")
 
         if request.GET.get("main-key"):
-            return HttpResponse(purl.public_key)
+            return HttpResponse(package.public_key)
 
-        return JsonResponse(purl.to_ap, content_type=AP_CONTENT_TYPE)
+        return JsonResponse(package.to_ap, content_type=AP_CONTENT_TYPE)
 
 
 @method_decorator(has_valid_header, name="dispatch")
@@ -655,7 +629,7 @@ class UserInbox(View):
         (client-to-server; this is like reading your social network stream)"""
         if hasattr(request.user, "person") and request.user.username == kwargs["username"]:
             purl_followers = [
-                generate_webfinger(follow.purl.string)
+                generate_webfinger(follow.package.purl)
                 for follow in Follow.objects.filter(person=request.user.person)
             ]
             note_list = Note.objects.filter(acct__in=purl_followers).order_by("updated_at__minute")
@@ -715,21 +689,21 @@ class UserOutbox(View):
 
 
 @method_decorator(has_valid_header, name="dispatch")
-class PurlInbox(View):
+class PackageInbox(View):
     def get(self, request, *args, **kwargs):
         """
         You can GET from your inbox to read your latest messages
         (client-to-server; this is like reading your social network stream)
         """
         try:
-            purl = Purl.objects.get(string=kwargs["purl_string"])
-        except Purl.DoesNotExist:
-            purl = None
+            package = Package.objects.get(purl=kwargs["purl_string"])
+        except Package.DoesNotExist:
+            package = None
 
-        if hasattr(request.user, "service") and purl:
+        if hasattr(request.user, "service") and package:
             return JsonResponse(
                 {
-                    "notes": ap_collection(purl.notes.all()),
+                    "notes": ap_collection(package.notes.all()),
                 },
                 content_type="application/activity+json",
             )
@@ -745,13 +719,13 @@ class PurlInbox(View):
 
 
 @method_decorator(has_valid_header, name="dispatch")
-class PurlOutbox(View):
+class PackageOutbox(View):
     def get(self, request, *args, **kwargs):
         """GET from someone's outbox to see what messages they've posted
         (or at least the ones you're authorized to see).
         (client-to-server and/or server-to-server)"""
 
-        actor = Purl.objects.get(string=kwargs["purl_string"])
+        actor = Package.objects.get(purl=kwargs["purl_string"])
         return JsonResponse(
             {"notes": ap_collection(actor.notes)},
             content_type=AP_CONTENT_TYPE,
@@ -760,8 +734,8 @@ class PurlOutbox(View):
     def post(self, request, *args, **kwargs):
         """You can POST to your outbox to send messages to the world (client-to-server)"""
         try:
-            actor = Purl.objects.get(string=kwargs["purl_string"])
-        except Purl.DoesNotExist:
+            actor = Package.objects.get(purl=kwargs["purl_string"])
+        except Package.DoesNotExist:
             return HttpResponseBadRequest("Invalid purl")
 
         if (
@@ -784,10 +758,12 @@ def redirect_repository(request, repository_id):
 
 def redirect_vulnerability(request, vulnerability_id):
     try:
-        vulnerability = Vulnerability.objects.get(id=vulnerability_id)
+        vul = Vulnerability.objects.get(id=vulnerability_id)
+        with open(vul.filepath) as f:
+            return HttpResponse(json.dumps(f.read()))
+
     except Vulnerability.DoesNotExist:
-        raise Http404("Vulnerability does not exist")
-    return HttpResponse(vulnerability.load_file)
+        return Http404("Vulnerability does not exist")
 
 
 class UserFollowing(View):
@@ -795,11 +771,11 @@ class UserFollowing(View):
         followings = Follow.objects.filter(person__user__username=self.kwargs["username"])
         return JsonResponse(
             [full_reverse(following) for following in followings],
-            content_type="application/activity+json",
+            content_type=AP_CONTENT_TYPE,
         )
 
 
-class PurlFollowers(View):
+class PackageFollowers(View):
     def get(self, request, *args, **kwargs):
         followers = Follow.objects.filter(purl__string=self.kwargs["purl_string"])
         return JsonResponse(

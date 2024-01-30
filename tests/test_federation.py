@@ -18,8 +18,8 @@ from fedcode.models import Note
 from fedcode.models import RemoteActor
 from fedcode.utils import file_data
 
+from .test_models import package
 from .test_models import person
-from .test_models import purl
 from .test_models import remote_person
 from .test_models import service
 
@@ -27,14 +27,14 @@ from .test_models import service
 @mock.patch("httpx.Client")
 @mock.patch("requests.get")
 @pytest.mark.django_db
-def test_remote_person_follow_purl(mock_get, _, purl):
+def test_remote_person_follow_package(mock_get, _, package):
     payload = json.dumps(
         {
             **AP_CONTEXT,
             "type": "Follow",
             "actor": "https://127.0.0.2:8000/api/v0/users/@ziad",
             "object": {
-                "type": "Purl",
+                "type": "Package",
                 "id": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
             },
             "to": ["https://127.0.0.2:8000/api/v0/users/@ziad"],
@@ -65,21 +65,21 @@ def test_remote_person_follow_purl(mock_get, _, purl):
         url="https://127.0.0.2:8000/api/v0/users/@ziad", username="ziad"
     ).person
 
-    assert Follow.objects.get(person=remote_person, purl=purl)
+    assert Follow.objects.get(person=remote_person, package=package)
     assert Follow.objects.count() == 1
 
 
 @mock.patch("httpx.Client")
 @mock.patch("requests.get")
 @pytest.mark.django_db
-def test_person_follow_remote_purl(mock_get, _, person):
+def test_person_follow_remote_package(mock_get, _, person):
     payload = json.dumps(
         {
             **AP_CONTEXT,
             "type": "Follow",
             "actor": f"https://127.0.0.1:8000/api/v0/users/@{person.user.username}",
             "object": {
-                "type": "Purl",
+                "type": "Package",
                 "id": "https://127.0.0.2:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
             },
             "to": [f"https://127.0.0.1:8000/api/v0/users/@{person.user.username}"],
@@ -87,42 +87,42 @@ def test_person_follow_remote_purl(mock_get, _, person):
     )
 
     activity = create_activity_obj(payload)
-    mock_request_remote_purl_webfinger = mock.Mock(status_code=200)
-    mock_request_remote_purl_webfinger.json.return_value = file_data(
+    mock_request_remote_package_webfinger = mock.Mock(status_code=200)
+    mock_request_remote_package_webfinger.json.return_value = file_data(
         "tests/test_data/mock_request_remote_purl_webfinger.json"
     )
 
-    mock_request_remote_purl = mock.Mock(status_code=200)
-    mock_request_remote_purl.json.return_value = file_data(
+    mock_request_remote_package = mock.Mock(status_code=200)
+    mock_request_remote_package.json.return_value = file_data(
         "tests/test_data/mock_request_remote_purl.json"
     )
     mock_request_server_to_server = mock.Mock(status_code=200)
 
     mock_get.side_effect = [
-        mock_request_remote_purl_webfinger,
-        mock_request_remote_purl,
+        mock_request_remote_package_webfinger,
+        mock_request_remote_package,
         mock_request_server_to_server,
     ]
 
     follow_activity = activity.handler()
-    remote_purl = RemoteActor.objects.get(
+    remote_package = RemoteActor.objects.get(
         url="https://127.0.0.2:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
         username="vcio",
-    ).purl
+    ).package
 
-    assert Follow.objects.get(person=person, purl=remote_purl)
+    assert Follow.objects.get(person=person, package=remote_package)
     assert Follow.objects.count() == 1
 
 
 @pytest.mark.django_db
 @mock.patch("httpx.Client")
-def test_purl_with_remote_follower_create_note(mock_get, purl, remote_person):
-    Follow.objects.create(purl=purl, person=remote_person)
+def test_package_with_remote_follower_create_note(mock_get, package, remote_person):
+    Follow.objects.create(package=package, person=remote_person)
     payload = json.dumps(
         {
             **AP_CONTEXT,
             "type": "Create",
-            "actor": f"https://127.0.0.1:8000/api/v0/purls/@{purl.string}/",
+            "actor": f"https://127.0.0.1:8000/api/v0/purls/@{package.purl}/",
             "object": {
                 "type": "Note",
                 "content": "we should fix this purl",
@@ -132,7 +132,7 @@ def test_purl_with_remote_follower_create_note(mock_get, purl, remote_person):
     )
     activity = create_activity_obj(payload)
     create_activity = activity.handler()
-    note = Note.objects.get(acct=purl.acct, content="we should fix this purl")
+    note = Note.objects.get(acct=package.acct, content="we should fix this purl")
     assert json.loads(create_activity.content) == {
         "Location": f"https://127.0.0.1:8000/notes/{note.id}"
     }

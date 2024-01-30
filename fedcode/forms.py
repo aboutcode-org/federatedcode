@@ -19,16 +19,15 @@ from .models import Review
 class CreateGitRepoForm(forms.ModelForm):
     class Meta:
         model = Repository
-        fields = ["name", "url"]
+        fields = ["url"]
         help_texts = {
-            'name': None,
             'url': None,
         }
 
     def __init__(self, *args, **kwargs):
         super(CreateGitRepoForm, self).__init__(*args, **kwargs)
-        self.fields["name"].widget.attrs.update({"class": "input mb-5"})
-        self.fields["url"].widget.attrs.update({"class": "input mb-5"})
+        self.fields["url"].widget.attrs.update({"class": "input mb-5",
+                                                "placeholder": "https://github.com/nexB/vulnerablecode-data"})
 
 
 class CreateNoteForm(forms.ModelForm):
@@ -94,7 +93,7 @@ class FetchForm(forms.Form):
     )
 
 
-class SubscribePurlForm(forms.Form):
+class SubscribePackageForm(forms.Form):
     acct = forms.CharField(
         label="Subscribe with a remote account:",
         widget=forms.TextInput(
@@ -103,7 +102,7 @@ class SubscribePurlForm(forms.Form):
     )
 
 
-class SearchPurlForm(forms.Form):
+class SearchPackageForm(forms.Form):
     search = forms.CharField(
         required=True,
         label=False,

@@ -12,12 +12,12 @@ Your Profile
 <div class="columns">
   <div class="column box content is-offset-1">
       <p class="is-size-5 has-text-centered">
-          <a href="#">@{{ purl.string }}</a>
+          <a href="#">@{{ package.purl }}</a>
       </p>
 
       <figure class="media-left">
         <p class="image is-64x64" style="margin: auto">
-            <img src="{{ purl.acct | get_purl_image }}" alt="purl-image">
+            <img src="{{ package.acct | get_pkg_image }}" alt="purl-image">
         </p>
       </figure>
 
@@ -33,7 +33,7 @@ Your Profile
       </nav>
 
       <p class="is-size-6 has-text-centered">
-        {{ purl.note }}
+        {{ package.note }}
       </p>
 
      <div class="has-text-centered">

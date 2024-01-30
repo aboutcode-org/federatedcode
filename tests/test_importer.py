@@ -10,7 +10,7 @@ import pytest
 
 from fedcode.importer import Importer
 from fedcode.models import Note
-from fedcode.models import Purl
+from fedcode.models import Package
 from fedcode.models import Vulnerability
 
 from .test_models import mute_post_save_signal
@@ -28,12 +28,12 @@ def test_simple_importer(service, repo, mute_post_save_signal):
 
     assert Note.objects.count() > 1
     assert Vulnerability.objects.count() > 1
-    assert Purl.objects.count() > 1
+    assert Package.objects.count() > 1
     assert repo.last_imported_commit
 
     note_n = Note.objects.count()
     vul_n = Vulnerability.objects.count()
-    purl_n = Purl.objects.count()
+    purl_n = Package.objects.count()
     last_imported_commit = repo.last_imported_commit
 
     # Run importer again without add any new data
@@ -42,7 +42,7 @@ def test_simple_importer(service, repo, mute_post_save_signal):
 
     assert note_n == Note.objects.count()
     assert vul_n == Vulnerability.objects.count()
-    assert purl_n == Purl.objects.count()
+    assert purl_n == Package.objects.count()
     assert last_imported_commit == repo.last_imported_commit
 
     # Edit last_imported_commit
@@ -62,12 +62,12 @@ def test_complex_importer(service, repo, mute_post_save_signal):
 
     assert Note.objects.count() > 1
     assert Vulnerability.objects.count() > 1
-    assert Purl.objects.count() > 1
+    assert Package.objects.count() > 1
     assert repo.last_imported_commit
 
     note_n = Note.objects.count()
     vul_n = Vulnerability.objects.count()
-    purl_n = Purl.objects.count()
+    purl_n = Package.objects.count()
     last_imported_commit = repo.last_imported_commit
 
     # Run importer again without add any new data
@@ -78,7 +78,7 @@ def test_complex_importer(service, repo, mute_post_save_signal):
 
     assert note_n > Note.objects.count()
     assert vul_n > Vulnerability.objects.count()
-    assert purl_n > Purl.objects.count()
+    assert purl_n > Package.objects.count()
 
     # Edit last_imported_commit
     repo.last_imported_commit = "9c3ccee39baef6017d9152367402de9909eadd72"

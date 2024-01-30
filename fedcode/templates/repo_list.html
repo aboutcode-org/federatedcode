@@ -25,12 +25,12 @@ Git Repository List
   <article class="media box mt-4 ">
     <div class="media-left has-text-centered">
         <h2>Number of Reviews</h2>
-{#        {{ repo.review_count }}#}
-        <p>1</p>
+        <p>{{ repo.review_count }}</p>
     </div>
     <div class="media-content ">
       <div class="content" style="border-left: 4px solid black;">
-          <h3 class="ml-3 mr-3"><a href="{{ repo.url }}"> {{ repo.name }} </a></h3>
+          <h3 class="ml-3 mr-3"><a href="{{ repo.url }}"> {{ repo.url }}</a></h3>
+          <small>@{{ repo.admin.user.username }}</small>
           {% if user.person %}
           <a class="is-center button ml-3" href="{% url 'review-create' repo.id %}">Create Review </a>
           {% endif %}
@@ -40,6 +40,7 @@ Git Repository List
                 <input type="submit" class="is-center button mt-2 ml-3 is-info" value="Sync">
               </form>
           {% endif %}
+
       </div>
 
     </div>

@@ -6,6 +6,7 @@ Welcome to Federated Code's documentation!
    :caption: Getting Started:
 
    contribute/installation
+   contribute/vocabulary
    skeleton-usage
    contribute/contrib_doc
 

@@ -13,8 +13,8 @@ from django.db.models.signals import post_save
 
 from fedcode.models import Follow
 from fedcode.models import Note
+from fedcode.models import Package
 from fedcode.models import Person
-from fedcode.models import Purl
 from fedcode.models import RemoteActor
 from fedcode.models import Repository
 from fedcode.models import Review
@@ -35,9 +35,9 @@ def service(db):
 
 
 @pytest.fixture
-def purl(db, service):
-    return Purl.objects.create(
-        string="pkg:maven/org.apache.logging",
+def package(db, service):
+    return Package.objects.create(
+        purl="pkg:maven/org.apache.logging",
         service=service,
     )
 
@@ -45,7 +45,7 @@ def purl(db, service):
 @pytest.fixture
 def remote_purl(db):
     remote_user1 = RemoteActor.objects.create(url="127.0.0.1", username="remote-ziad")
-    return Purl.objects.create(remote_user=remote_user1, string="pkg:maven/org.apache.logging")
+    return Package.objects.create(remote_user=remote_user1, string="pkg:maven/org.apache.logging")
 
 
 @pytest.fixture
@@ -76,17 +76,16 @@ def test_remote_person(remote_person):
     assert remote_person.remote_actor.username == "remote-ziad"
 
 
-def test_purl(purl, service):
-    assert purl.service == service
-    assert purl.string == "pkg:maven/org.apache.logging"
-    assert Purl.objects.count() == 1
+def test_purl(package, service):
+    assert package.service == service
+    assert package.purl == "pkg:maven/org.apache.logging"
+    assert Package.objects.count() == 1
 
 
 @pytest.fixture
 def repo(db, service, mute_post_save_signal):
     """Simple Git Repository"""
     return Repository.objects.create(
-        name="vulnerablecode_data",
         url="https://github.com/nexB/fake-repo",
         path="./review/tests/test_data/test_git_repo_v1",
         admin=service,
@@ -122,12 +121,12 @@ def note(db):
 
 
 @pytest.fixture
-def follow(db, purl, person):
-    return Follow.objects.create(purl=purl, person=person)
+def follow(db, package, person):
+    return Follow.objects.create(package=package, person=person)
 
 
-def test_follow(follow, purl, person):
-    assert follow.purl.string == purl.string
+def test_follow(follow, package, person):
+    assert follow.package.purl == package.purl
     assert follow.person.user == person.user
 
 

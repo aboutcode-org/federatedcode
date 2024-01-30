@@ -11,5 +11,6 @@
         "owner": "https://127.0.0.2:8000/api/v0/users/@vcio",
         "publicKeyPem": "BEGIN PUBLIC KEY...END PUBLIC KEY"
     },
-    "type": "Purl"
+    "type": "Package",
+    "purl": "pkg:maven/org.apache.logging"
 }

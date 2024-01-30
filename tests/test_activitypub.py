@@ -20,8 +20,8 @@ from fedcode.models import Review
 from .test_models import follow
 from .test_models import mute_post_save_signal
 from .test_models import note
+from .test_models import package
 from .test_models import person
-from .test_models import purl
 from .test_models import repo
 from .test_models import service
 from .test_models import vulnerability
@@ -88,12 +88,12 @@ def test_person_create_review(person, vulnerability, repo):
 
 
 @pytest.mark.django_db
-def test_purl_create_note(purl, service):
+def test_purl_create_note(package, service):
     payload = json.dumps(
         {
             **AP_CONTEXT,
             "type": "Create",
-            "actor": f"https://127.0.0.1:8000/api/v0/purls/@{purl.string}/",
+            "actor": f"https://127.0.0.1:8000/api/v0/purls/@{package.purl}/",
             "object": {
                 "type": "Note",
                 "content": "we should fix this purl",
@@ -102,7 +102,7 @@ def test_purl_create_note(purl, service):
     )
     activity = create_activity_obj(payload)
     create_activity = activity.handler()
-    note = Note.objects.get(acct=purl.acct, content="we should fix this purl")
+    note = Note.objects.get(acct=package.acct, content="we should fix this purl")
     assert json.loads(create_activity.content) == {
         "Location": f"https://127.0.0.1:8000/notes/{note.id}"
     }
@@ -118,7 +118,6 @@ def test_service_create_repo(service):
             "actor": f"https://127.0.0.1:8000/api/v0/users/@{service.user.username}",
             "object": {
                 "type": "Repository",
-                "name": "vulnerablecode",
                 "url": "https://github.com/nexB/vulnerablecode-data",
             },
         }
@@ -127,7 +126,8 @@ def test_service_create_repo(service):
     create_activity = activity.handler()
     assert Repository.objects.count() == 1
     repo = Repository.objects.get(
-        name="vulnerablecode", url="https://github.com/nexB/vulnerablecode-data"
+        url="https://github.com/nexB/vulnerablecode-data",
+        admin=service,
     )
     assert json.loads(create_activity.content) == {
         "Location": f"https://127.0.0.1:8000/repository/{repo.id}/"
@@ -136,14 +136,14 @@ def test_service_create_repo(service):
 
 
 @pytest.mark.django_db
-def test_person_follow_purl(person, purl):
+def test_person_follow_package(person, package):
     payload = json.dumps(
         {
             **AP_CONTEXT,
             "type": "Follow",
             "actor": f"https://127.0.0.1:8000/api/v0/users/@{person.user.username}",
             "object": {
-                "type": "Purl",
+                "type": "Package",
                 "id": f"https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
             },
         }
@@ -151,7 +151,7 @@ def test_person_follow_purl(person, purl):
 
     activity = create_activity_obj(payload)
     follow_activity = activity.handler()
-    assert Follow.objects.get(person=person, purl=purl)
+    assert Follow.objects.get(person=person, package=package)
     assert Follow.objects.count() == 1
 
 
@@ -222,14 +222,14 @@ def test_person_update_note(person, note):
 
 
 @pytest.mark.django_db
-def test_person_unfollow_purl(person, purl, follow):
+def test_person_unfollow_package(person, package, follow):
     payload = json.dumps(
         {
             **AP_CONTEXT,
             "type": "UnFollow",
             "actor": f"https://127.0.0.1:8000/api/v0/users/@{person.user.username}",
             "object": {
-                "type": "Purl",
+                "type": "Package",
                 "id": f"https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
             },
         }

@@ -15,7 +15,7 @@ register = template.Library()
 
 
 @register.filter
-def get_purl_image(purl_webfinger):
+def get_pkg_image(purl_webfinger):
     """
     Return the path of the image package
     """

@@ -9,7 +9,15 @@ Login page
   <div class="column"></div>
   <div class="column is-two-fifths">
     {% if form.errors %}
-    <p>Your username and password didn't match. Please try again.</p>
+      <div class="columns is-mobile">
+            <div class="column is-half is-offset-one-quarter">
+                    <article class="message is-danger">
+                          <div class="message-body">
+                                <p>Your username and password didn't match. Please try again.</p>
+                          </div>
+                    </article>
+            </div>
+      </div>
     {% endif %}
       <form action="{% url 'login' %}" method="post">
           {% csrf_token %}

@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 import requests
 from django.urls import resolve
 from django.urls import reverse
+from git import InvalidGitRepositoryError
 from git.repo.base import Repo
 from packageurl import PackageURL
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
@@ -45,10 +46,11 @@ def generate_webfinger(username, domain=FEDERATED_CODE_DOMAIN):
     return username + "@" + domain
 
 
-def clone_git_repo(repo_path, repo_name, repo_url):
+def clone_git_repo(repo_path, repo_url):
     """
-    Create Git repository in ${repo_path}/${repo_name}.git and git pull origin branch
+    Clone Git repository in ${repo_path}/repo_name.git
     """
+    repo_name = str(hash(repo_url))
     abspath = os.path.join(repo_path, repo_name)
     repo = Repo.clone_from(repo_url, str(abspath))
     return repo
