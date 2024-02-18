@@ -96,8 +96,8 @@ def repo(db, service, mute_post_save_signal):
 @pytest.fixture
 def vulnerability(db, repo):
     return Vulnerability.objects.create(
+        id="VCID-1155-4sem-aaaq",
         repo=repo,
-        filename="VCID-rf6e-vjeu-aaae",
     )
 
 
@@ -157,8 +157,8 @@ def test_reputation(rep, note):
 
 
 def test_vulnerability(vulnerability, repo):
+    assert vulnerability.id == "VCID-1155-4sem-aaaq"
     assert vulnerability.repo == repo
-    assert vulnerability.filename == "VCID-rf6e-vjeu-aaae"
 
 
 @pytest.fixture(autouse=True)

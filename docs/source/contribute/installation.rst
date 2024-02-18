@@ -158,18 +158,6 @@ production servers.
 
     make postgres
 
-.. note::
-    You can also use a **SQLite** database for local development as a single user
-    with::
-
-        make sqlite
-
-.. warning::
-    Choosing SQLite over PostgreSQL has some caveats. Check this `link
-    <https://docs.djangoproject.com/en/dev/ref/databases/#sqlite-notes>`_
-    for more details.
-
-
 Tests
 ^^^^^
 

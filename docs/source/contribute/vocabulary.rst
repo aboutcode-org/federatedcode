@@ -8,13 +8,13 @@ FederatedCode Vocabulary’s intended to be an extension of
 Actors
 *******
 
-Purl
------
+Package
+-------
   .. code-block:: JSON
 
     {
         "@context": ["https://www.w3.org/ns/activitystreams", "....."],
-        "type": "Purl",
+        "type": "Package",
         "name": "vcio",
         "followers": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/followers/",
         "id": "https://127.0.0.1:8000/api/v0/purls/@pkg:maven/org.apache.logging/",
@@ -153,20 +153,24 @@ Objects
 
 Note
 -----
+
   .. code-block:: JSON
 
-    {
+      {
         "type": "Note",
         "id": "https://127.0.0.1:8000/notes/3701d4b6-a7cf-41ee-9144-35f9d70afe0b",
         "author": "pkg:maven/org.apache.logging@127.0.0.1:8000",
         "content": "purl: pkg:maven/org.apache.logging@2.23-r0?arch=aarch64&distroversion=edge&reponame=community
-                         affected_by_vulnerabilities: []
-                         fixing_vulnerabilities: []",
+            affected_by_vulnerabilities: []
+            fixing_vulnerabilities: []",
         "mediaType": "application/yaml"
-    }
+        }
 
+OR Note
+--------
 
   .. code-block:: JSON
+
     {
         "type": "Note",
         "id": "https://127.0.0.1:8000/notes/3701d4b6-a7cf-41ee-9144-35f9d70afe0b",
@@ -204,6 +208,7 @@ Review
         "published": "2015-02-10T15:04:55Z",
         "updated": "2015-02-10T15:04:55Z",
     }
+
 Repository
 ------------
   .. code-block:: JSON
@@ -219,10 +224,8 @@ Vulnerability
   .. code-block:: JSON
 
     {
-        "id": "https://127.0.0.1:8000/vulnerability/dfc1f9bf-3f23-484b-9187-4c9bc89d7cbb/",
+        "id": "https://127.0.0.1:8000/vulnerability/VCID-1155-4sem-aaaq/",
         "type": "Vulnerability",
-        "filename": "VCID-1a68-fd5t-aaam",
-        "filepath": "/alpm/archlinux/lib32-libid3tag/VCID-wama-7bde-aaam.yml",
         "repository": "https://127.0.0.1:8000/repository/dfc1f9bf-3f23-484b-9187-4c9bc89d7cbb/",
     }
 
@@ -232,7 +235,6 @@ Like
   .. code-block:: JSON
 
     {
-      "@context": "https://www.w3.org/ns/activitystreams",
       "type": "Like",
       "actor": "ziad@vcio",
       "object": {
@@ -246,7 +248,6 @@ Dislike
   .. code-block:: JSON
 
     {
-      "@context": "https://www.w3.org/ns/activitystreams",
       "type": "Dislike",
       "actor": "ziad@vcio",
       "object": {

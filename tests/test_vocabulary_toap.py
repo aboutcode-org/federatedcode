@@ -70,12 +70,11 @@ def test_objects_to_ap(repo, review, vulnerability, note, rep, mute_post_save_si
         "filepath": review.filepath,
     }
     assert vulnerability.to_ap == {
-        "type": "Vulnerability",
         "id": f"https://127.0.0.1:8000/vulnerability/{vulnerability.id}/",
-        "filename": vulnerability.filename,
-        "filepath": vulnerability.filepath,
+        "type": "Vulnerability",
         "repository": f"https://127.0.0.1:8000/repository/{vulnerability.repo.id}/",
     }
+
     assert note.to_ap == {
         "type": "Note",
         "id": f"https://127.0.0.1:8000/notes/{note.id}",

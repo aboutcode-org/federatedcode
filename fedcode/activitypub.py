@@ -77,7 +77,7 @@ URL_MAPPER = {
     "review-page": "uuid",
     "repository-page": "uuid",
     "note-page": "uuid",
-    "vulnerability-page": "uuid",
+    "vulnerability-page": "str",
 }
 
 logger = logging.getLogger(__name__)

@@ -400,26 +400,25 @@ class Repository(models.Model):  # TODO
 
 
 class Vulnerability(models.Model):
-    id = models.UUIDField(
+    id = models.CharField(
         primary_key=True,
-        editable=False,
-        default=uuid.uuid4,
-        help_text="The object's unique global identifier",
+        max_length=20,
+        help_text="Unique identifier for a vulnerability in the external representation. "
+        "It is prefixed with VCID-",
     )
+
     repo = models.ForeignKey(Repository, on_delete=models.CASCADE)
-    filename = models.CharField(max_length=255, help_text="ex: VCID-wama-7bde-aaam")
-    filepath = models.CharField(max_length=255, help_text="/alpm/archlinux/lib32-libid3tag/VCID-wama-7bde-aaam.yml")
     remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="")
 
     class Meta:
-        unique_together = [["repo", "filename"]]
+        unique_together = [["repo"]]
 
     @property
     def absolute_url(self):
         return full_reverse("vulnerability-page", self.id)
 
     def __str__(self):
-        return self.filename
+        return self.id
 
     @property
     def to_ap(self):
@@ -427,8 +426,6 @@ class Vulnerability(models.Model):
             "id": self.absolute_url,
             "type": "Vulnerability",
             "repository": self.repo.absolute_url,
-            "filename": self.filename,
-            "filepath": self.filepath,
         }
 
 

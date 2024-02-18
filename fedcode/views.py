@@ -759,7 +759,10 @@ def redirect_repository(request, repository_id):
 def redirect_vulnerability(request, vulnerability_id):
     try:
         vul = Vulnerability.objects.get(id=vulnerability_id)
-        with open(vul.filepath) as f:
+        vul_filepath = os.path.join(vul.repo.path,
+                                    f"./aboutcode-vulnerabilities-{vulnerability_id[5:9]}/{vulnerability_id[10:14]}"
+                                    f"/{vulnerability_id}/{vulnerability_id}.yml")
+        with open(vul_filepath) as f:
             return HttpResponse(json.dumps(f.read()))
 
     except Vulnerability.DoesNotExist:

@@ -82,26 +82,23 @@ class Importer:
 def vul_handler(change_type, repo_obj, yaml_data_a_blob, yaml_data_b_blob, a_path, b_path):
     if change_type == "A":  # A for added paths
         Vulnerability.objects.get_or_create(
+            id=yaml_data_b_blob.get("vulnerability_id"),
             repo=repo_obj,
-            filename=yaml_data_b_blob.get("vulnerability_id"),
-            filepath=b_path
         )
     elif change_type in [
         "M",
         "R",
     ]:  # R for renamed paths , M for paths with modified data
         vul = Vulnerability.objects.get(
+            id=yaml_data_a_blob.get("vulnerability_id"),
             repo=repo_obj,
-            filename=yaml_data_a_blob.get("vulnerability_id"),
-            # filepath=a_path, b_path
         )
         vul.filename = yaml_data_b_blob.get("vulnerability_id")
         vul.save()
     elif change_type == "D":  # D for deleted paths
         vul = Vulnerability.objects.filter(
+            id=yaml_data_b_blob.get("vulnerability_id"),
             repo=repo_obj,
-            filename=yaml_data_a_blob.get("vulnerability_id"),
-            filepath=a_path,
         )
         vul.delete()
     else:

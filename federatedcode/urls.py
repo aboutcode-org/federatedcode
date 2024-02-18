@@ -76,7 +76,7 @@ urlpatterns = [
         name="repository-fetch",
     ),
     path(
-        "vulnerability/<uuid:vulnerability_id>/",
+        "vulnerability/<str:vulnerability_id>/",
         redirect_vulnerability,
         name="vulnerability-page",
     ),
