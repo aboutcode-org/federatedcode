@@ -27,7 +27,12 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 class RemoteActor(models.Model):
     url = models.URLField(primary_key=True)
     username = models.CharField(max_length=100)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True, help_text="A field to track when remote actor are created"
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True, help_text="A field to track when remote actor are updated"
+    )
 
 
 class Actor(models.Model):
@@ -76,7 +81,7 @@ class Reputation(models.Model):
         ]
 
 
-class Service(models.Model):  # TODO rename to AdminUser
+class Service(models.Model):
     """
     A AdminUser is a special user that can manage git repositories ( sync , create )
     """
@@ -163,7 +168,7 @@ class Note(models.Model):
         }
 
 
-class Package(Actor):  # TODO package
+class Package(Actor):
     """
     A software package identified by its package url ( PURL ) ignoring versions
     """
@@ -211,7 +216,7 @@ class Package(Actor):  # TODO package
             inboxes.append(person_inbox)
         return inboxes
 
-    # TODO raise error if the purl have a version or qualifiers or subpath
+    # TODO raise error if the package have a version or qualifiers or subpath
     # def save(self, *args, **kwargs):
     #     if not check_purl_actor(self.string):
     #         return ValidationError(self.string)
@@ -404,7 +409,7 @@ class Vulnerability(models.Model):
         primary_key=True,
         max_length=20,
         help_text="Unique identifier for a vulnerability in the external representation. "
-        "It is prefixed with VCID-",
+                  "It is prefixed with VCID-",
     )
 
     repo = models.ForeignKey(Repository, on_delete=models.CASCADE)

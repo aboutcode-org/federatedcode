@@ -9,6 +9,7 @@
 from fedcode.importer import Importer
 from fedcode.models import FederateRequest, SyncRequest
 from fedcode.signatures import HttpSignature, FEDERATED_CODE_PRIVATE_KEY
+from django.core.management.base import BaseCommand, CommandError
 
 
 def sync_task():
@@ -43,3 +44,14 @@ def send_fed_req_task():
                 rq.error_message = e
             finally:
                 rq.save()
+
+
+class Command(BaseCommand):
+    def add_arguments(self, parser):
+        parser.add_argument("task", choices=["sync", "federate"])
+
+    def handle(self, *args, **options):
+        if options['task'] == "sync":
+            sync_task()
+        elif options['task'] == "federate":
+            send_fed_req_task()

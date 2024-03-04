@@ -32,8 +32,6 @@ from .models import Repository
 from .models import Review
 from .models import Service
 from .models import Vulnerability
-from .signatures import FEDERATED_CODE_PRIVATE_KEY
-from .signatures import HttpSignature
 from .utils import fetch_actor
 from .utils import full_resolve
 from .utils import full_reverse

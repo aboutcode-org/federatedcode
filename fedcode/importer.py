@@ -114,7 +114,6 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
         for version in yaml_data_b_blob.get("versions", []):
             create_note(pkg, version)
 
-
     elif change_type == "M":
         old_package = yaml_data_a_blob.get("package")
         new_package = yaml_data_b_blob.get("package")

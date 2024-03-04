@@ -64,6 +64,7 @@ from .models import Repository
 from .models import Reputation
 from .models import Review
 from .models import Vulnerability
+from .signatures import HttpSignature,FEDERATED_CODE_PUBLIC_KEY
 from .utils import ap_collection
 from .utils import full_reverse
 from .utils import generate_webfinger
@@ -715,7 +716,10 @@ class PackageInbox(View):
         You can POST to someone's inbox to send them a message
         (server-to-server / federation only... this is federation!)
         """
-        return NotImplementedError
+        HttpSignature.verify_request(request, FEDERATED_CODE_PUBLIC_KEY)
+        activity = create_activity_obj(request.body)
+        activity_response = activity.handler()
+        return activity_response
 
 
 @method_decorator(has_valid_header, name="dispatch")
@@ -760,7 +764,7 @@ def redirect_vulnerability(request, vulnerability_id):
     try:
         vul = Vulnerability.objects.get(id=vulnerability_id)
         vul_filepath = os.path.join(vul.repo.path,
-                                    f"./aboutcode-vulnerabilities-{vulnerability_id[5:9]}/{vulnerability_id[10:14]}"
+                                    f"./aboutcode-vulnerabilities-{vulnerability_id[5:7]}/{vulnerability_id[10:12]}"
                                     f"/{vulnerability_id}/{vulnerability_id}.yml")
         with open(vul_filepath) as f:
             return HttpResponse(json.dumps(f.read()))

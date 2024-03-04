@@ -21,8 +21,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - /etc/federatedcode/:/etc/federatedcode/
       - static:/var/federatedcode/static/
+      - /etc/federatedcode/:/etc/federatedcode/
     depends_on:
       - db
   nginx:
@@ -35,5 +35,6 @@ services:
       - federatedcode
 volumes:
   db_data:
-  federatedcode:
   static:
+  federatedcode:
+
