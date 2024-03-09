@@ -86,11 +86,11 @@ WSGI_APPLICATION = "federatedcode.wsgi.application"
 # postgresql database
 DATABASES = {
     "default": {
-        "ENGINE": env.str("PURL_SYNC_DB_ENGINE", "django.db.backends.postgresql"),
+        "ENGINE": env.str("DB_ENGINE", "django.db.backends.postgresql"),
         "HOST": env.str("POSTGRES_HOST", "127.0.0.1"),
-        "NAME": env.str("POSTGRES_DB_NAME", "purl-sync"),
-        "USER": env.str("POSTGRES_USER", "vulnerablecode"),
-        "PASSWORD": env.str("POSTGRES_PASSWORD", "vulnerablecode"),
+        "NAME": env.str("POSTGRES_DB_NAME", "federatedcode"),
+        "USER": env.str("POSTGRES_USER", "federatedcode"),
+        "PASSWORD": env.str("POSTGRES_PASSWORD", "federatedcode"),
         "PORT": env.str("POSTGRES_PORT", "5432"),
     }
 }

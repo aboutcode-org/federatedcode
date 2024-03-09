@@ -7,11 +7,21 @@
 # See https://github.com/nexB/skeleton for support or download.
 # See https://aboutcode.org for more information about nexB OSS projects.
 #
+include .env
 
 # Python version can be specified with `$ PYTHON_EXE=python3.x make conf`
 PYTHON_EXE?=python3
 VENV=venv
 ACTIVATE?=. ${VENV}/bin/activate;
+MANAGE=${VENV}/bin/python manage.py
+
+# Use sudo for postgres, but only on Linux
+UNAME := $(shell uname)
+ifeq ($(UNAME), Linux)
+	SUDO_POSTGRES=sudo -u postgres
+else
+	SUDO_POSTGRES=
+endif
 
 dev:
 	@echo "-> Configure the development envt."
@@ -57,4 +67,20 @@ docs:
 	rm -rf docs/_build/
 	@${ACTIVATE} sphinx-build docs/source docs/_build/
 
-.PHONY: conf dev check valid black isort clean test docs envfile
+
+postgres:
+	@echo "-> Configure PostgreSQL database"
+	@echo "-> Create database user '${POSTGRES_DB}'"
+	${SUDO_POSTGRES} createuser --no-createrole --no-superuser --login --inherit --createdb ${POSTGRES_DB} || true
+	${SUDO_POSTGRES} psql -c "alter user ${POSTGRES_USER} with encrypted password '${POSTGRES_PASSWORD}';" || true
+	@echo "-> Drop '${POSTGRES_DB}' database"
+	${SUDO_POSTGRES} dropdb ${POSTGRES_DB} || true
+	@echo "-> Create '${POSTGRES_DB}' database"
+	${SUDO_POSTGRES} createdb --encoding=utf-8 --owner=${POSTGRES_USER} ${POSTGRES_DB}
+	@$(MAKE) migrate
+
+migrate:
+	@echo "-> Apply database migrations"
+	${MANAGE} migrate
+
+.PHONY: conf dev check valid black isort clean test docs envfile postgres migrate

@@ -15,7 +15,6 @@ from urllib.parse import urlparse
 import requests
 from django.urls import resolve
 from django.urls import reverse
-from git import InvalidGitRepositoryError
 from git.repo.base import Repo
 from packageurl import PackageURL
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
@@ -90,7 +89,7 @@ def ap_collection(objects):
 
 
 def webfinger_actor(domain, user):
-    """ """
+    """"""
     acct = generate_webfinger(user, domain)
     url = f"http://{domain}/.well-known/webfinger?resource=acct:{acct}"  # TODO http -> https
     headers = {"User-Agent": ""}  # TODO

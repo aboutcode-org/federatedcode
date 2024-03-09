@@ -57,7 +57,7 @@ AP_VALID_HEADERS = [
 ]
 
 AP_CONTEXT = {
-    "@context": ["https://www.w3.org/ns/activitystreams", "..........."],
+    "@context": ["https://www.w3.org/ns/activitystreams", "https://www.aboutcode.org/ns/federatedcode"],
 }
 
 AP_TARGET = {"cc": "https://www.w3.org/ns/activitystreams#Public"}
@@ -130,9 +130,14 @@ class Activity:
 
     def handler(self):
         ap_actor = ApActor(**self.actor) if isinstance(self.actor, dict) else ApActor(id=self.actor)
-        ap_object = (
-            ApObject(**self.object) if isinstance(self.object, dict) else ApObject(id=self.object)
-        )
+        if self.type in ["Follow", "UnFollow"]:
+            ap_object = (
+                ApActor(**self.object) if isinstance(self.object, dict) else ApActor(id=self.object)
+            )
+        else:
+            ap_object = (
+                ApObject(**self.object) if isinstance(self.object, dict) else ApObject(id=self.object)
+            )
         return ACTIVITY_MAPPER[self.type](actor=ap_actor, object=ap_object, to=self.to).save()
 
     @classmethod
@@ -198,18 +203,15 @@ class ApObject:
     content: str = None
     reply_to: str = None
     repository: str = None
-    branch: str = None
     filename: str = None
-    hash: str = None
     headline: str = None
     name: str = None
     url: str = None
     vulnerability: str = None
-    published: str = None
     commit: str = None
     filepath: str = None
 
-    def get_object(self):
+    def get(self):
         if self.id:
             obj_id, page_name = full_resolve(self.id)
             identifier = URL_MAPPER[page_name]
@@ -228,47 +230,69 @@ class FollowActivity:
     to: list = field(default_factory=list)
 
     def save(self):
-        # TODO simplify this section
-        actor = self.actor.get()
-        parser = urlparse(self.actor.id)
-        if not actor and parser.netloc != FEDERATED_CODE_DOMAIN:
-            # remote person ( send a remote follow request if created and assume the request was accepted )
-            resolver = resolve(parser.path)
-            identity = URL_MAPPER[resolver.url_name]
-            url = webfinger_actor(parser.netloc, resolver.kwargs[identity])
-            actor_details = fetch_actor(url)
+        """
+        Save the follow relationship between the actor and the package
+
+        steps:
+
+        1. check if actor url ( id ) domain equal to server domain
+            if not, fetch the remote actor and create a new actor remote
+
+        2. check if package url ( id ) equal to server domain
+            if not, fetch the remote actor and create a new actor remote
+
+        3.create a Follow relationship and return a success message
+        """
+        person = self.actor.get()
+        package = self.object.get()
+
+        if not (package or person):
+            return self.failed_ap_rs()
+
+        if not person:
+            # remote actor
+            person_webfinger_url = check_remote_actor(self.actor.id)
+            if not person_webfinger_url:  # INVALID DOMAIN
+                return self.failed_ap_rs()
+
+            person_details = fetch_actor(person_webfinger_url)
+
+            if not isinstance(person_details, dict):
+                return self.failed_ap_rs()
+
+            if not (person_details.get("name") and person_details.get("id")):
+                return self.failed_ap_rs()
+
             remote_actor, created = RemoteActor.objects.get_or_create(
-                username=actor_details["name"], url=actor_details["id"]
+                username=person_details["name"], url=person_details["id"]
             )
-            actor, created = Person.objects.get_or_create(remote_actor=remote_actor)
-            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
-        # --------------------------------------------
-        parser = urlparse(self.object.id)
-        resolver = resolve(parser.path)
-        obj_id, page_name = resolver.kwargs, resolver.url_name
-        identity = URL_MAPPER[page_name]
-        if parser.netloc == FEDERATED_CODE_DOMAIN:
-            # local package
-            try:
-                package = Package.objects.get(purl=obj_id["purl_string"])
-            except Package.DoesNotExist:
-                package = None
-        else:
+            person, created = Person.objects.get_or_create(remote_actor=remote_actor)
+
+        if not package:
             # remote package
-            url = webfinger_actor(parser.netloc, resolver.kwargs[identity])
-            package_details = fetch_actor(url)
+            package_webfinger_url = check_remote_actor(self.object.id)
+
+            if not package_webfinger_url:  # INVALID DOMAIN
+                return self.failed_ap_rs()
+            package_details = fetch_actor(package_webfinger_url)
+
+            if not isinstance(package_details, dict):
+                return self.failed_ap_rs()
+
+            if not (package_details.get("name") and package_details.get("id")):
+                return self.failed_ap_rs()
+
             remote_actor, created = RemoteActor.objects.get_or_create(
                 username=package_details["name"], url=package_details["id"]
             )
             package, created = Package.objects.get_or_create(
                 remote_actor=remote_actor, purl=package_details["purl"]
             )
-            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
 
-        if package and actor:
-            Follow.objects.get_or_create(person=actor, package=package)
+        if person and package:
+            Follow.objects.get_or_create(person=person, package=package)
+            Activity.federate(targets=self.to, body=self.to_ap(), key_id=person.key_id)
             return self.succeeded_ap_rs()
-
         return self.failed_ap_rs()
 
     def succeeded_ap_rs(self):
@@ -392,7 +416,7 @@ class UpdateActivity:
     def save(self):
         updated_obj = None
         actor = self.actor.get()
-        old_obj = self.object.get_object()
+        old_obj = self.object.get()
         if not actor:
             return self.failed_ap_rs()
 
@@ -455,7 +479,7 @@ class DeleteActivity:
                 or (type(actor) is Package and self.object.type in ["Note"])
                 or (type(actor) is Service and self.object.type == ["Repository", "Package"])
         ):
-            instance = self.object.get_object()
+            instance = self.object.get()
             instance.delete()
             Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
             return self.succeeded_ap_rs()
@@ -494,9 +518,7 @@ def create_activity_obj(data):
 
 @dataclass
 class UnFollowActivity:
-    """
-
-    """
+    """"""
     type = "UnFollow"
     actor: ApActor
     object: ApActor
@@ -549,7 +571,7 @@ class SyncActivity:
         actor = self.actor.get()
         if not actor:
             return self.failed_ap_rs()
-        repo = self.object.get_object().git_repo_obj
+        repo = self.object.get().git_repo_obj
         repo.remotes.origin.pull()
         return self.succeeded_ap_rs()
 
@@ -570,3 +592,18 @@ ACTIVITY_MAPPER = {
     "UnFollow": UnFollowActivity,
     "Sync": SyncActivity,
 }
+
+
+def check_remote_actor(key_id):
+    """
+    check if url is remote actor
+    if valid remote actor return actor webfinger
+    """
+    parser = urlparse(key_id)
+    if parser.netloc == FEDERATED_CODE_DOMAIN:  # INVALID DOMAIN ( Server Domain )
+        return
+
+    resolver = resolve(parser.path)
+    obj_id, page_name = resolver.kwargs, resolver.url_name
+    identity = URL_MAPPER[page_name]
+    return webfinger_actor(parser.netloc, resolver.kwargs[identity])
