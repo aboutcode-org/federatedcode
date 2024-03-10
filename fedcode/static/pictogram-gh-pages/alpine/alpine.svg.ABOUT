@@ -1,0 +1,3 @@
+about_resource: alpine.png
+download_url: https://wiki.alpinelinux.org/images/alogo.svg
+notes: converted svg image ( alogo.svg ) to png ( alpine.png ) using gimp
