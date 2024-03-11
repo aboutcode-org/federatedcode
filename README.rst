@@ -1,13 +1,21 @@
 FederatedCode
 ================================
-FederatedCode is a ...
+FederatedCode is a decentralized, federated metadata about software applications
 
 Usage
 =====
 Getting started
---------------------------------------------
-...
+-----------------
 
+Quick Installation
+===================
+On a Debian system, use this::
+    sudo apt-get install  python3-venv python3-dev postgresql libpq-dev build-essential
+    git clone https://github.com/nexB/federatedcode.git && cd federatedcode
+    make dev envfile postgres
+    make test
+    source venv/bin/activate
+    make run
 
 Acknowledgements
 ^^^^^^^^^^^^^^^^

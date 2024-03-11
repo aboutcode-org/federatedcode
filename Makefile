@@ -67,7 +67,6 @@ docs:
 	rm -rf docs/_build/
 	@${ACTIVATE} sphinx-build docs/source docs/_build/
 
-
 postgres:
 	@echo "-> Configure PostgreSQL database"
 	@echo "-> Create database user '${POSTGRES_DB}'"
@@ -83,4 +82,8 @@ migrate:
 	@echo "-> Apply database migrations"
 	${MANAGE} migrate
 
-.PHONY: conf dev check valid black isort clean test docs envfile postgres migrate
+run:
+	@echo "-> Starting development server"
+	${MANAGE} runserver
+
+.PHONY: conf dev check valid black isort clean test docs envfile postgres migrate run

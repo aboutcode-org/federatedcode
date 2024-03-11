@@ -165,6 +165,20 @@ You can validate your federatedcode installation by running the tests suite::
 
     make test
 
+Import a Service like ( VCIO , .. )
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Create a Superuser::
+
+    python manage.py createsuperuser
+
+Create a Service:
+
+using django-admin panel create user as service admin then create a Service 'vcio'
+login using service admin credential then create a new git repository ex: https://github.com/nexB/vulnerablecode-data
+
+Create a Sync request and Import git repository data:
+click on the sync button under the git repository url then run: ``python manage.py tasks sync``
+
 
 Web Application
 ^^^^^^^^^^^^^^^
