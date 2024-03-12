@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = "nexb-skeleton"
+project = "federatedcode"
 copyright = "nexB Inc. and others."
 author = "AboutCode.org authors and contributors"
 
@@ -30,7 +30,7 @@ author = "AboutCode.org authors and contributors"
 extensions = [
     "sphinx.ext.intersphinx",
     "sphinx_reredirects",
-    'sphinx_rtd_theme',
+    "sphinx_rtd_theme",
     "sphinx_rtd_dark_mode",
     "sphinx.ext.extlinks",
     "sphinx_copybutton",
@@ -47,7 +47,10 @@ redirects = {}
 
 intersphinx_mapping = {
     "aboutcode": ("https://aboutcode.readthedocs.io/en/latest/", None),
-    "scancode-workbench": ("https://scancode-workbench.readthedocs.io/en/develop/", None),
+    "scancode-workbench": (
+        "https://scancode-workbench.readthedocs.io/en/develop/",
+        None,
+    ),
 }
 
 
@@ -108,6 +111,4 @@ rst_prolog = """
 
 # -- Options for LaTeX output -------------------------------------------------
 
-latex_elements = {
-    'classoptions': ',openany,oneside'
-}
+latex_elements = {"classoptions": ",openany,oneside"}

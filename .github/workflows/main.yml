@@ -1,0 +1,51 @@
+name: run tests
+
+on: [push, pull_request]
+
+env:
+  FEDERATED_CODE_HOST: 127.0.0.1
+  FEDERATED_CODE_PORT: 8000
+  FEDERATED_CODE_DOMAIN: 127.0.0.1:8000
+  POSTGRES_HOST: 127.0.0.1
+  POSTGRES_DB: federatedcode
+  POSTGRES_USER: federatedcode
+  POSTGRES_PASSWORD: federatedcode
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: make dev
+
+      - name: Run tests
+        run: make test
+        env:
+          GH_TOKEN: 1
+          FEDERATED_CODE_HOST:  ${{ env.FEDERATED_CODE_HOST }}
+          FEDERATED_CODE_PORT: ${{ env.FEDERATED_CODE_PORT }}
+          FEDERATED_CODE_DOMAIN: ${{ env.FEDERATED_CODE_DOMAIN }}
+          POSTGRES_HOST: ${{ env.POSTGRES_HOST }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_PORT: ${{ env.POSTGRES_PORT }}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% load static %}
+{% load webfinger_image %}
+{% block title %}
+Note page
+{% endblock %}
+{% block extra-head %}
+<script src="{% static 'js/vote.js' %}"></script>
+{% endblock %}
+{% block content %}
+<div class="columns">
+  <div class="column">
+  </div>
+  <div class="column is-four-fifths box">
+
+    <article class="media">
+      <figure class="media-left">
+        <p class="image is-64x64">
+            <img src="{{ note.acct | get_pkg_image }}" alt="purl-image">
+        </p>
+      </figure>
+      <form class="ml-5 mr-5" name="vote-notes">
+          <span class="icon ml-1">
+               <button name="vote-up" class="button is-rounded is-white" value="{{ note.id }}" type="submit">▲</button>
+          </span>
+          <p class="ml-3 mt-1 mb-1" name="{{ note.id }}">{{ note.reputation_value }}</p>
+          <span class="icon ml-1">
+               <button name="vote-down" class="button is-rounded is-white" value="{{ note.id }}"  type="submit">▼</button>
+          </span>
+      </form>
+
+      <div class="media-content">
+        <div class="content">
+          <p>
+            <a href="{% url 'purl-profile' note.username %}">{{ note.acct }}</a>
+            <br>
+             <pre class="has-text-black">{{ note.content }}</pre>
+          </p>
+        </div>
+      </div>
+
+      <div class="media-right">
+         <small>last update: {{ note.updated_at }}</small>
+      </div>
+    </article>
+
+    {% for note_r in note.replies.all %}
+        <article class="media ml-5">
+          <div class="media-content">
+            <div class="content">
+              <p>
+                <a href="{% url 'user-profile' note_r.username %}">@{{ note_r.acct }}</a>
+                <p>{{ note_r.content }}</p>
+              </p>
+            </div>
+          </div>
+          <div class="media-right">
+             <small>last update: {{ note.updated_at }}</small>
+          </div>
+        </article>
+    {% endfor %}
+
+    <article class="media">
+
+      <figure class="media-left">
+        <p class="image is-64x64">
+           <img class="is-rounded" src="{{ user.person.avatar.url }}" >
+        </p>
+      </figure>
+      <div class="media-content">
+          <form method="POST" action="">
+            <div class="field">
+              <p class="control">
+                  {% csrf_token %}
+                  {{ form }}
+              </p>
+            </div>
+            <div class="field">
+              <p class="control">
+                <button class="button" type="submit">Post comment</button>
+              </p>
+            </div>
+          </form>
+      </div>
+    </article>
+  </div>
+  <div class="column">
+  </div>
+</div>
+{% endblock %}

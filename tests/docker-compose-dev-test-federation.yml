@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  db1:
+    image: postgres:16
+    env_file:
+      - ./docker-compose-dev-test-federation1.env
+    volumes:
+      - db_data1:/var/lib/postgresql/data1/
+  db2:
+    image: postgres:16
+    env_file:
+      - ./docker-compose-dev-test-federation2.env
+    volumes:
+      - db_data2:/var/lib/postgresql/data2/
+
+  federated_code1:
+    build:  ../
+    command: /bin/sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8001"
+    env_file:
+      - docker-compose-dev-test-federation1.env
+    volumes:
+      - /etc/federated_code1/:/etc/federated_code1/
+    expose:
+      - 8001
+    ports:
+      - "8001:8001"
+    depends_on:
+      - db1
+
+  federated_code2:
+    build: ../
+    command: /bin/sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"
+    env_file:
+      - docker-compose-dev-test-federation2.env
+    volumes:
+      - /etc/federated_code2/:/etc/federated_code2/
+    expose:
+      - 8002
+    ports:
+      - "8002:8002"
+    depends_on:
+      - db2
+
+
+volumes:
+  db_data1:
+  db_data2:
+  federated_code1:
+  federated_code2:
+

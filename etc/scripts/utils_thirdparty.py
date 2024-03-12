@@ -25,13 +25,12 @@ import license_expression
 import packageurl
 import requests
 import saneyaml
+import utils_pip_compatibility_tags
 from commoncode import fileutils
 from commoncode.hash import multi_checksums
 from commoncode.text import python_safe_name
 from packvers import tags as packaging_tags
 from packvers import version as packaging_version
-
-import utils_pip_compatibility_tags
 
 """
 Utilities to manage Python thirparty libraries source, binaries and metadata in
@@ -355,7 +354,6 @@ class NameVer:
 
 @attr.attributes
 class Distribution(NameVer):
-
     # field names that can be updated from another Distribution or mapping
     updatable_fields = [
         "license_expression",
@@ -1091,7 +1089,6 @@ def get_sdist_name_ver_ext(filename):
 
 @attr.attributes
 class Sdist(Distribution):
-
     extension = attr.ib(
         repr=False,
         type=str,
@@ -2137,7 +2134,6 @@ def call(args, verbose=TRACE):
     with subprocess.Popen(
         args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
     ) as process:
-
         stdouts = []
         while True:
             line = process.stdout.readline()
