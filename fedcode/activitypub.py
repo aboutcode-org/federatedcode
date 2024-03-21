@@ -23,7 +23,7 @@ from django.urls import resolve
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
 from federatedcode.settings import FEDERATED_CODE_GIT_PATH
 
-from .models import Follow, FederateRequest
+from .models import Follow, FederateRequest, SyncRequest
 from .models import Note
 from .models import Person
 from .models import Package
@@ -72,10 +72,10 @@ OBJ_PAGE = {
 URL_MAPPER = {
     "user-ap-profile": "username",
     "purl-ap-profile": "purl_string",
-    "review-page": "uuid",
-    "repository-page": "uuid",
-    "note-page": "uuid",
-    "vulnerability-page": "str",
+    "review-page": "review_id",
+    "repository-page": 'repository_id',
+    "note-page": "note_id",
+    "vulnerability-page": "vulnerability_id",
 }
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,7 @@ def add_ap_target(response):
 
 def has_valid_header(view):
     """
-    check if the request header in the AP_VALID_HEADERS if yes return view else return HttpResponseForbidden
+    check if the request header in the AP_VALID_HEADERS if yes return view else return
     """
 
     def wrapper(request, *args, **kwargs):
@@ -152,6 +152,43 @@ class Activity:
                     FederateRequest.objects.create(target=target, body=body, key_id=key_id)
                 except Exception as e:
                     logger.error(f"{e}")
+
+    @classmethod
+    def get_actor_permissions(cls, actor, object):
+        """get the actor permission to do some activity on the object"""
+        permissions = {
+            Person: {
+                Note: lambda: {
+                    CreateActivity,
+                    UpdateActivity if object.acct == actor.acct else None,
+                    DeleteActivity if object.acct == actor.acct else None
+                },
+
+                Review: lambda: {
+                    CreateActivity,
+                    UpdateActivity if object.author == actor else None,
+                    DeleteActivity if object.author == actor else None
+                },
+            },
+            Service: {
+                Repository: lambda: {
+                    CreateActivity,
+                    SyncActivity if object.admin == actor else None,
+                    UpdateActivity if object.admin == actor else None,
+                    DeleteActivity if object.admin == actor else None
+                }
+            },
+            Package: {
+                Note: lambda: {
+                    CreateActivity,
+                    UpdateActivity if object.acct == actor.acct else None,
+                    DeleteActivity if object.acct == actor.acct else None
+                },
+            }
+        }
+
+        # Return the permissions for the specific actor and object type
+        return permissions.get(type(actor), {}).get(type(object), lambda: {})
 
 
 @dataclass
@@ -430,13 +467,13 @@ class UpdateActivity:
                 (isinstance(actor, Person) and self.object.type in ["Note", "Review"])
                 or (isinstance(actor, Service) and self.object.type == "Repository")
                 or (isinstance(actor, Package) and self.object.type == "Note")
-        ):
+        ) and UpdateActivity in Activity.get_actor_permissions(actor, old_obj)():
             for key, value in updated_param[self.object.type].items():
                 if value:
                     setattr(old_obj, key, value)
             old_obj.save()
 
-        Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
+            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
         return self.succeeded_ap_rs(old_obj.to_ap)
 
     def succeeded_ap_rs(self, update_obj):
@@ -480,11 +517,12 @@ class DeleteActivity:
                 or (type(actor) is Service and self.object.type == ["Repository", "Package"])
         ):
             instance = self.object.get()
-            instance.delete()
-            Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
-            return self.succeeded_ap_rs()
-        else:
-            return self.failed_ap_rs()
+            if DeleteActivity in Activity.get_actor_permissions(actor, instance)():
+                instance.delete()
+                Activity.federate(targets=self.to, body=self.to_ap(), key_id=actor.key_id)
+                return self.succeeded_ap_rs()
+
+        return self.failed_ap_rs()
 
     def ap_rq(self):
         """Request for deleting object in activitypub format"""
@@ -571,9 +609,13 @@ class SyncActivity:
         actor = self.actor.get()
         if not actor:
             return self.failed_ap_rs()
-        repo = self.object.get().git_repo_obj
-        repo.remotes.origin.pull()
-        return self.succeeded_ap_rs()
+        repo = self.object.get()
+
+        if SyncActivity in Activity.get_actor_permissions(actor, repo)():
+            SyncRequest.objects.create(repo=repo)
+            return self.succeeded_ap_rs()
+
+        return self.failed_ap_rs()
 
     def succeeded_ap_rs(self):
         """Response for successfully deleting the object"""
@@ -607,3 +649,4 @@ def check_remote_actor(key_id):
     obj_id, page_name = resolver.kwargs, resolver.url_name
     identity = URL_MAPPER[page_name]
     return webfinger_actor(parser.netloc, resolver.kwargs[identity])
+

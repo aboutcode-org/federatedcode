@@ -226,7 +226,18 @@ def test_get_user_outbox(person, vulnerability, review, note):
         format="json",
     )
     assert json.loads(response.content) == {
-        "notes": {"type": "OrderedCollection", "totalItems": 0, "orderedItems": []},
+        "notes": {
+            "type": "OrderedCollection",
+            "totalItems": 1,
+            "orderedItems": [
+                {
+                    "author": note.acct,
+                    "content": note.content,
+                    "id": f"https://127.0.0.1:8000/notes/{note.id}",
+                    "type": "Note",
+                }
+            ],
+        },
         "reviews": {
             "type": "OrderedCollection",
             "totalItems": 1,

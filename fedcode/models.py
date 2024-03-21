@@ -352,7 +352,7 @@ class Follow(models.Model):
         return f"{self.person.user.username} - {self.package.purl}"
 
 
-class Repository(models.Model):  # TODO
+class Repository(models.Model):
     """
     A git repository used as a backing storage for Package and vulnerability data
     """
@@ -435,7 +435,6 @@ class Vulnerability(models.Model):
 
 
 class Review(models.Model):
-    # TODO
     id = models.UUIDField(
         primary_key=True,
         editable=False,
