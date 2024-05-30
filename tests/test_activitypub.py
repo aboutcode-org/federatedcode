@@ -11,18 +11,27 @@ import json
 import pytest
 
 from fedcode.activitypub import AP_CONTEXT
+from fedcode.activitypub import Activity
+from fedcode.activitypub import CreateActivity
+from fedcode.activitypub import DeleteActivity
+from fedcode.activitypub import SyncActivity
+from fedcode.activitypub import UpdateActivity
 from fedcode.activitypub import create_activity_obj
 from fedcode.models import Follow
 from fedcode.models import Note
 from fedcode.models import Repository
 from fedcode.models import Review
+from fedcode.models import SyncRequest
 
+from .test_models import fake_service
 from .test_models import follow
 from .test_models import mute_post_save_signal
 from .test_models import note
 from .test_models import package
 from .test_models import person
+from .test_models import pkg_note
 from .test_models import repo
+from .test_models import review
 from .test_models import service
 from .test_models import vulnerability
 
@@ -240,19 +249,55 @@ def test_person_unfollow_package(person, package, follow):
     assert Follow.objects.count() == 0
 
 
-# @pytest.mark.django_db
-# def test_person_sync_repo(service, repo):
-#     payload = json.dumps(
-#         {
-#             **AP_CONTEXT,
-#             "type": "Sync",
-#             "actor": f"https://127.0.0.1:8000/users/@{service.user.username}",
-#             "object": {
-#                 "type": "Repository",
-#                 "id": f"https://127.0.0.1:8000/repository/{repo.id}/",
-#             },
-#         }
-#     )
-#
-#     activity = create_activity_obj(payload)
-#     sync_activity = activity.handler()
+@pytest.mark.django_db
+def test_get_actor_permissions(
+    person, package, service, repo, note, review, pkg_note, fake_service
+):
+    assert Activity.get_actor_permissions(person, note)() == {
+        CreateActivity,
+        UpdateActivity,
+        DeleteActivity,
+    }
+    assert Activity.get_actor_permissions(person, review)() == {
+        CreateActivity,
+        UpdateActivity,
+        DeleteActivity,
+    }
+    assert Activity.get_actor_permissions(service, repo)() == {
+        CreateActivity,
+        UpdateActivity,
+        DeleteActivity,
+        SyncActivity,
+    }
+    assert Activity.get_actor_permissions(package, pkg_note)() == {
+        CreateActivity,
+        UpdateActivity,
+        DeleteActivity,
+    }
+
+    note.acct = "fake_person@127.0.0.2"
+    assert Activity.get_actor_permissions(person, note)() == {CreateActivity, None}
+
+    repo.admin = fake_service
+    assert Activity.get_actor_permissions(service, repo)() == {CreateActivity, None}
+
+    assert Activity.get_actor_permissions(package, note)() == {CreateActivity, None}
+
+
+@pytest.mark.django_db
+def test_service_sync_repo(service, repo):
+    payload = json.dumps(
+        {
+            **AP_CONTEXT,
+            "type": "Sync",
+            "actor": f"https://127.0.0.1:8000/api/v0/users/@{service.user.username}",
+            "object": {
+                "type": "Repository",
+                "id": f"https://127.0.0.1:8000/repository/{repo.id}/",
+            },
+        }
+    )
+
+    activity = create_activity_obj(payload)
+    sync_activity = activity.handler()
+    assert SyncRequest.objects.all().count() == 1

@@ -36,6 +36,18 @@ def service(db):
 
 
 @pytest.fixture
+def fake_service(db):
+    user = User.objects.create(
+        username="fake_service",
+        email="vcio@nexb.com",
+        password="complex-password",
+    )
+    return Service.objects.create(
+        user=user,
+    )
+
+
+@pytest.fixture
 def package(db, service):
     return Package.objects.create(
         purl="pkg:maven/org.apache.logging",
@@ -116,8 +128,18 @@ def review(db, repo, person):
 @pytest.fixture
 def note(db):
     return Note.objects.create(
-        acct="ziad@vcio",
+        acct="ziad@127.0.0.1:8000",
         content="Comment #1",
+    )
+
+
+@pytest.fixture
+def pkg_note(db, package):
+    return Note.objects.create(
+        acct=package.acct,
+        content="purl: "
+        "pkg:maven/org.apache.logging@2.23-r0?arch=aarch64&distroversion=edge&reponame=community\n"
+        "         affected_by_vulnerabilities: ....",
     )
 
 
