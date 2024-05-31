@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 
 import io
@@ -18,7 +18,7 @@ from django.urls import reverse
 from git.repo.base import Repo
 from packageurl import PackageURL
 
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
 
 
 def parse_webfinger(subject):
@@ -42,7 +42,7 @@ def parse_webfinger(subject):
         return tuple(subject.split("@"))
 
 
-def generate_webfinger(username, domain=FEDERATED_CODE_DOMAIN):
+def generate_webfinger(username, domain=FEDERATEDCODE_DOMAIN):
     return username + "@" + domain
 
 
@@ -58,7 +58,7 @@ def clone_git_repo(repo_path, repo_url):
 
 def full_reverse(page_name, *args, **kwargs):
     web_page = reverse(page_name, args=args, kwargs=kwargs)
-    return f'{"https://"}{FEDERATED_CODE_DOMAIN}{web_page}'
+    return f'{"https://"}{FEDERATEDCODE_DOMAIN}{web_page}'
 
 
 def full_resolve(full_path):

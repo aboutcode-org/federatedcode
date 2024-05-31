@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 
 import uuid
@@ -22,8 +22,8 @@ from fedcode.utils import ap_collection
 from fedcode.utils import clone_git_repo
 from fedcode.utils import full_reverse
 from fedcode.utils import generate_webfinger
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import FEDERATED_CODE_GIT_PATH
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
+from federatedcode.settings import FEDERATEDCODE_WORKSPACE_LOCATION
 
 
 class RemoteActor(models.Model):
@@ -282,7 +282,7 @@ class Person(Actor):
 
     @property
     def avatar_absolute_url(self):
-        return f'{"https://"}{FEDERATED_CODE_DOMAIN}{self.avatar.url}'
+        return f'{"https://"}{FEDERATEDCODE_DOMAIN}{self.avatar.url}'
 
     # TODO raise error if the user doesn't have a user or remote actor
     @property
@@ -562,6 +562,6 @@ class SyncRequest(models.Model):
 @receiver(post_save, sender=Repository)
 def create_git_repo(sender, instance, created, **kwargs):
     if created:
-        repo = clone_git_repo(FEDERATED_CODE_GIT_PATH, instance.url)
+        repo = clone_git_repo(FEDERATEDCODE_WORKSPACE_LOCATION, instance.url)
         instance.path = repo.working_dir
         instance.save()

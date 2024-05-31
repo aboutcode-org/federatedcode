@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import difflib
 import json
@@ -49,9 +49,9 @@ from fedcode.forms import SearchRepositoryForm
 from fedcode.forms import SearchReviewForm
 from fedcode.forms import SubscribePackageForm
 from federatedcode.settings import AP_CONTENT_TYPE
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import FEDERATED_CODE_GIT_PATH
-from federatedcode.settings import env
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
+from federatedcode.settings import FEDERATEDCODE_CLIENT_ID
+from federatedcode.settings import FEDERATEDCODE_CLIENT_SECRET
 
 from .activitypub import AP_CONTEXT
 from .activitypub import create_activity_obj
@@ -69,7 +69,7 @@ from .models import Reputation
 from .models import Review
 from .models import SyncRequest
 from .models import Vulnerability
-from .signatures import FEDERATED_CODE_PUBLIC_KEY
+from .signatures import FEDERATEDCODE_PUBLIC_KEY
 from .signatures import HttpSignature
 from .utils import ap_collection
 from .utils import full_reverse
@@ -79,9 +79,6 @@ from .utils import parse_webfinger
 from .utils import webfinger_actor
 
 logger = logging.getLogger(__name__)
-
-FEDERATED_CODE_CLIENT_ID = env.str("FEDERATED_CODE_CLIENT_ID")
-FEDERATED_CODE_CLIENT_SECRET = env.str("FEDERATED_CODE_CLIENT_SECRET")
 
 
 def logout(request):
@@ -99,7 +96,7 @@ class WebfingerView(View):
 
         obj, domain = parse_webfinger(resource)
 
-        if FEDERATED_CODE_DOMAIN != domain or not obj:
+        if FEDERATEDCODE_DOMAIN != domain or not obj:
             return HttpResponseBadRequest("Invalid domain")
 
         if obj.startswith("pkg:"):
@@ -115,7 +112,7 @@ class WebfingerView(View):
                 content_type="application/jrd+json",
                 context={
                     "resource": resource,
-                    "domain": FEDERATED_CODE_DOMAIN,
+                    "domain": FEDERATEDCODE_DOMAIN,
                     "purl_string": package.purl,
                 },
             )
@@ -132,7 +129,7 @@ class WebfingerView(View):
                 content_type="application/jrd+json",
                 context={
                     "resource": resource,
-                    "domain": FEDERATED_CODE_DOMAIN,
+                    "domain": FEDERATEDCODE_DOMAIN,
                     "username": user.username,
                 },
             )
@@ -491,7 +488,7 @@ class FollowPackageView(View):
                 )
 
                 activity = create_activity_obj(payload)
-                activity_response = activity.handler()
+                _activity_response = activity.handler()
                 return JsonResponse(
                     {
                         "redirect_url": f"https://{domain}/authorize_interaction?uri={remote_actor_url}"
@@ -727,7 +724,7 @@ class PackageInbox(View):
         You can POST to someone's inbox to send them a message
         (server-to-server / federation only... this is federation!)
         """
-        HttpSignature.verify_request(request, FEDERATED_CODE_PUBLIC_KEY)
+        HttpSignature.verify_request(request, FEDERATEDCODE_PUBLIC_KEY)
         activity = create_activity_obj(request.body)
         activity_response = activity.handler()
         return activity_response
@@ -815,8 +812,8 @@ def token(request):
             "grant_type": "password",
             "username": payload["username"],
             "password": payload["password"],
-            "client_id": FEDERATED_CODE_CLIENT_ID,
-            "client_secret": FEDERATED_CODE_CLIENT_SECRET,
+            "client_id": FEDERATEDCODE_CLIENT_ID,
+            "client_secret": FEDERATEDCODE_CLIENT_SECRET,
         },
     )
     return JsonResponse(json.loads(r.content), status=r.status_code, content_type=AP_CONTENT_TYPE)
@@ -832,8 +829,8 @@ def refresh_token(request):
         data={
             "grant_type": "refresh_token",
             "refresh_token": payload["refresh_token"],
-            "client_id": FEDERATED_CODE_CLIENT_ID,
-            "client_secret": FEDERATED_CODE_CLIENT_SECRET,
+            "client_id": FEDERATEDCODE_CLIENT_ID,
+            "client_secret": FEDERATEDCODE_CLIENT_SECRET,
         },
     )
     return JsonResponse(json.loads(r.text), status=r.status_code, content_type=AP_CONTENT_TYPE)
@@ -848,8 +845,8 @@ def revoke_token(request):
         headers={"content-type": "application/x-www-form-urlencoded"},
         data={
             "token": payload["token"],
-            "client_id": FEDERATED_CODE_CLIENT_ID,
-            "client_secret": FEDERATED_CODE_CLIENT_SECRET,
+            "client_id": FEDERATEDCODE_CLIENT_ID,
+            "client_secret": FEDERATEDCODE_CLIENT_SECRET,
         },
     )
     return JsonResponse(json.loads(r.content), status=r.status_code, content_type=AP_CONTENT_TYPE)

@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import json
 import logging
@@ -20,8 +20,8 @@ from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
 from django.urls import resolve
 
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import FEDERATED_CODE_GIT_PATH
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
+from federatedcode.settings import FEDERATEDCODE_WORKSPACE_LOCATION
 
 from .models import FederateRequest
 from .models import Follow
@@ -154,7 +154,7 @@ class Activity:
         """
         for target in targets:
             target_domain = urlparse(target).netloc
-            if target_domain != FEDERATED_CODE_DOMAIN:  # TODO Add a server whitelist if necessary
+            if target_domain != FEDERATEDCODE_DOMAIN:  # TODO Add a server whitelist if necessary
                 try:
                     FederateRequest.objects.create(target=target, body=body, key_id=key_id)
                 except Exception as e:
@@ -419,7 +419,7 @@ class CreateActivity:
             if self.object.type == "Repository":
                 new_obj, created = Repository.objects.get_or_create(
                     url=self.object.url,
-                    path=FEDERATED_CODE_GIT_PATH,
+                    path=FEDERATEDCODE_WORKSPACE_LOCATION,
                     admin=actor,
                 )
 
@@ -654,7 +654,7 @@ def check_remote_actor(key_id):
     if valid remote actor return actor webfinger
     """
     parser = urlparse(key_id)
-    if parser.netloc == FEDERATED_CODE_DOMAIN:  # INVALID DOMAIN ( Server Domain )
+    if parser.netloc == FEDERATEDCODE_DOMAIN:  # INVALID DOMAIN ( Server Domain )
         return
 
     resolver = resolve(parser.path)

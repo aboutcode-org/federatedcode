@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import json
 
@@ -12,7 +12,7 @@ import pytest
 from django.test import Client
 
 from fedcode.utils import generate_webfinger
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
 
 from .test_models import package
 from .test_models import person
@@ -43,12 +43,12 @@ def test_webfinger(person, service, package):
             {
                 "rel": "https://webfinger.net/rel/profile-page",
                 "type": "text/html",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/users/@{person.user.username}",
+                "href": f"https://{FEDERATEDCODE_DOMAIN}/users/@{person.user.username}",
             },
             {
                 "rel": "self",
                 "type": "application/activity+json",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/api/v0/users/@{person.user.username}",
+                "href": f"https://{FEDERATEDCODE_DOMAIN}/api/v0/users/@{person.user.username}",
             },
         ],
     }
@@ -59,12 +59,12 @@ def test_webfinger(person, service, package):
             {
                 "rel": "https://webfinger.net/rel/profile-page",
                 "type": "text/html",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/users/@{service.user.username}",
+                "href": f"https://{FEDERATEDCODE_DOMAIN}/users/@{service.user.username}",
             },
             {
                 "rel": "self",
                 "type": "application/activity+json",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/api/v0/users/@{service.user.username}",
+                "href": f"https://{FEDERATEDCODE_DOMAIN}/api/v0/users/@{service.user.username}",
             },
         ],
     }
@@ -75,12 +75,12 @@ def test_webfinger(person, service, package):
             {
                 "rel": "https://webfinger.net/rel/profile-page",
                 "type": "text/html",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/purls/@{ package.purl }",
+                "href": f"https://{FEDERATEDCODE_DOMAIN}/purls/@{ package.purl }",
             },
             {
                 "rel": "self",
                 "type": "application/activity+json",
-                "href": f"https://{FEDERATED_CODE_DOMAIN}/api/v0/purls/@{ package.purl }",
+                "href": f"https://{FEDERATEDCODE_DOMAIN}/api/v0/purls/@{ package.purl }",
             },
         ],
     }

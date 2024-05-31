@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 from django.core.management.base import BaseCommand
 from django.core.management.base import CommandError
@@ -12,7 +12,7 @@ from django.core.management.base import CommandError
 from fedcode.importer import Importer
 from fedcode.models import FederateRequest
 from fedcode.models import SyncRequest
-from fedcode.signatures import FEDERATED_CODE_PRIVATE_KEY
+from fedcode.signatures import FEDERATEDCODE_PRIVATE_KEY
 from fedcode.signatures import HttpSignature
 
 
@@ -42,7 +42,7 @@ def send_fed_req_task():
         if not rq.done:
             try:
                 HttpSignature.signed_request(
-                    rq.target, rq.body, FEDERATED_CODE_PRIVATE_KEY, rq.key_id
+                    rq.target, rq.body, FEDERATEDCODE_PRIVATE_KEY, rq.key_id
                 )
                 rq.done = True
                 rq.save()
