@@ -1,12 +1,12 @@
 version: '3'
 
 services:
-  db:
+  federatedcode_db:
     image: postgres:16
     env_file:
       - docker.env
     volumes:
-      - db_data:/var/lib/postgresql/data/
+      - federatedcode_db_data:/var/lib/postgresql/data/
   federatedcode:
     build: .
     command: /bin/sh -c "
@@ -24,8 +24,8 @@ services:
       - static:/var/federatedcode/static/
       - /etc/federatedcode/:/etc/federatedcode/
     depends_on:
-      - db
-  nginx:
+      - federatedcode_db
+  federatedcode_nginx:
     image: nginx
     env_file:
       - docker.env
@@ -34,7 +34,7 @@ services:
     depends_on:
       - federatedcode
 volumes:
-  db_data:
-  static:
+  federatedcode_db_data:
+  federatedcode_static:
   federatedcode:
 

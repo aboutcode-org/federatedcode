@@ -1,7 +1,10 @@
 ==============
 FederatedCode
 ==============
-FederatedCode is a decentralized, federated metadata about software applications
+
+FederatedCode is a decentralized, federated metadata system for open source software code and
+security information.
+
 
 ===================
 Quick Installation
@@ -15,8 +18,11 @@ On a Debian system, use this::
     source venv/bin/activate
     make run
 
+
 Acknowledgements
 ^^^^^^^^^^^^^^^^
-This project was funded through the NGI0 Entrust Fund, a fund established by NLnet with financial support from the European Commission's Next Generation Internet programme, under the aegis of DG Communications Networks, Content and Technology under grant agreement No 101069594.
+This project was funded through the NGI0 Entrust Fund, a fund established by NLnet with financial
+support from the European Commission's Next Generation Internet programme, under the aegis of DG
+Communications Networks, Content and Technology under grant agreement No 101069594.
 
 https://nlnet.nl/project/FederatedSoftwareMetadata/
