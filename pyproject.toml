@@ -1,11 +1,6 @@
 [build-system]
-requires = ["setuptools >= 50", "wheel", "setuptools_scm[toml] >= 6"]
+requires = ["setuptools >= 50", "wheel"]
 build-backend = "setuptools.build_meta"
-
-[tool.setuptools_scm]
-# this is used populated when creating a git archive
-# and when there is .git dir and/or there is no git installed
-fallback_version = "9999.$Format:%h-%cs$"
 
 [tool.pytest.ini_options]
 norecursedirs = [
@@ -51,17 +46,13 @@ addopts = [
     "--strict-markers",
     "--doctest-modules"
 ]
+
 [tool.black]
 line-length = 100
 include = '\.pyi?$'
 skip_gitignore = true
 # 'extend-exclude' excludes files or directories in addition to the defaults
-extend-exclude = '''
-(
-  ^/venv/.*
-  | ^/federatedcode/migrations/.*
-)
-'''
+extend-exclude = "venv|migrations"
 
 [tool.isort]
 profile = "black"
