@@ -8,18 +8,18 @@
 #
 from django.contrib import admin
 
+from .models import FederateRequest
 from .models import Follow
 from .models import Note
-from .models import Person
 from .models import Package
+from .models import Person
 from .models import RemoteActor
 from .models import Repository
 from .models import Reputation
 from .models import Review
 from .models import Service
-from .models import Vulnerability
 from .models import SyncRequest
-from .models import FederateRequest
+from .models import Vulnerability
 
 admin.site.register(Person)
 admin.site.register(Service)

@@ -64,8 +64,14 @@ class Importer:
             if os.path.split(diff.a_path)[1].startswith("VCID") or os.path.split(diff.b_path)[
                 1
             ].startswith("VCID"):
-                vul_handler(diff.change_type, self.repo_obj, yaml_data_a_blob, yaml_data_b_blob,
-                            diff.a_path, diff.b_path)
+                vul_handler(
+                    diff.change_type,
+                    self.repo_obj,
+                    yaml_data_a_blob,
+                    yaml_data_b_blob,
+                    diff.a_path,
+                    diff.b_path,
+                )
                 continue
 
             pkg_handler(
@@ -123,7 +129,7 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
         pkg.save()
 
         for version_a, version_b in zip_longest(
-                yaml_data_a_blob.get("versions", []), yaml_data_b_blob.get("versions", [])
+            yaml_data_a_blob.get("versions", []), yaml_data_b_blob.get("versions", [])
         ):
             if version_b and not version_a:
                 create_note(pkg, version_b)

@@ -12,11 +12,14 @@ import logging
 import os.path
 
 import requests
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
+from django.contrib.auth.models import auth
 from django.contrib.auth.views import LoginView
+from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.http import Http404
 from django.http import HttpResponse
@@ -45,8 +48,9 @@ from fedcode.forms import SearchPackageForm
 from fedcode.forms import SearchRepositoryForm
 from fedcode.forms import SearchReviewForm
 from fedcode.forms import SubscribePackageForm
-from federatedcode.settings import AP_CONTENT_TYPE, FEDERATED_CODE_GIT_PATH
+from federatedcode.settings import AP_CONTENT_TYPE
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
+from federatedcode.settings import FEDERATED_CODE_GIT_PATH
 from federatedcode.settings import env
 
 from .activitypub import AP_CONTEXT
@@ -56,24 +60,23 @@ from .forms import CreateGitRepoForm
 from .forms import CreateNoteForm
 from .forms import CreateReviewForm
 from .forms import ReviewStatusForm
-from .models import Follow, SyncRequest
+from .models import Follow
 from .models import Note
-from .models import Person
 from .models import Package
+from .models import Person
 from .models import Repository
 from .models import Reputation
 from .models import Review
+from .models import SyncRequest
 from .models import Vulnerability
-from .signatures import HttpSignature,FEDERATED_CODE_PUBLIC_KEY
+from .signatures import FEDERATED_CODE_PUBLIC_KEY
+from .signatures import HttpSignature
 from .utils import ap_collection
 from .utils import full_reverse
 from .utils import generate_webfinger
 from .utils import load_git_file
 from .utils import parse_webfinger
 from .utils import webfinger_actor
-from django.contrib.auth.models import auth
-from django.contrib import messages
-from django.contrib.contenttypes.models import ContentType
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +193,9 @@ class PackageView(DetailView, FormMixin):
         if self.request.user.is_authenticated:
             context["is_user_follow"] = (
                 True
-                if Follow.objects.filter(package=self.object, person__user=self.request.user).first()
+                if Follow.objects.filter(
+                    package=self.object, person__user=self.request.user
+                ).first()
                 else False
             )
 
@@ -387,23 +392,25 @@ def fetch_repository_file(request, repository_id):
 def obj_vote(request, obj_id, obj_type):
     if request.headers.get("x-requested-with") == "XMLHttpRequest" and request.method == "PUT":
         user_webfinger = generate_webfinger(request.user.username)
-        if obj_type == 'review':
+        if obj_type == "review":
             obj = get_object_or_404(Review, id=obj_id)
-        elif obj_type == 'note':
+        elif obj_type == "note":
             obj = get_object_or_404(Note, id=obj_id)
         else:
             return HttpResponseBadRequest("Invalid object type to vote")
 
         request_body = json.load(request)
         try:
-            content_type = ContentType.objects.get_for_model(Review if obj_type == 'review' else Note).id
+            content_type = ContentType.objects.get_for_model(
+                Review if obj_type == "review" else Note
+            ).id
             rep_obj = Reputation.objects.get(
                 voter=user_webfinger,
                 object_id=obj.id,
                 content_type=content_type,
             )
             if rep_obj:
-                vote_type = 'vote-down' if rep_obj.positive else 'vote-up'
+                vote_type = "vote-down" if rep_obj.positive else "vote-up"
                 rep_obj.delete()
                 return JsonResponse(
                     {
@@ -421,11 +428,13 @@ def obj_vote(request, obj_id, obj_type):
                     positive=True,
                 )
             elif vote_type == "vote-down":
-                rep_obj = Reputation.objects.create(
-                    voter=user_webfinger,
-                    content_object=obj,
-                    positive=False,
-                ),
+                rep_obj = (
+                    Reputation.objects.create(
+                        voter=user_webfinger,
+                        content_object=obj,
+                        positive=False,
+                    ),
+                )
 
             else:
                 return HttpResponseBadRequest("Invalid vote-type request")
@@ -451,7 +460,9 @@ class FollowPackageView(View):
 
             elif "unfollow" in request.POST:
                 try:
-                    follow_obj = Follow.objects.get(person=self.request.user.person, package=package)
+                    follow_obj = Follow.objects.get(
+                        person=self.request.user.person, package=package
+                    )
                     follow_obj.delete()
                 except Follow.DoesNotExist:
                     return HttpResponseBadRequest(
@@ -743,9 +754,9 @@ class PackageOutbox(View):
             return HttpResponseBadRequest("Invalid purl")
 
         if (
-                request.user.is_authenticated
-                and hasattr(request.user, "service")
-                and actor.service == request.user.service
+            request.user.is_authenticated
+            and hasattr(request.user, "service")
+            and actor.service == request.user.service
         ):
             activity = create_activity_obj(request.body)
             return activity.handler()
@@ -763,9 +774,11 @@ def redirect_repository(request, repository_id):
 def redirect_vulnerability(request, vulnerability_id):
     try:
         vul = Vulnerability.objects.get(id=vulnerability_id)
-        vul_filepath = os.path.join(vul.repo.path,
-                                    f"./aboutcode-vulnerabilities-{vulnerability_id[5:7]}/{vulnerability_id[10:12]}"
-                                    f"/{vulnerability_id}/{vulnerability_id}.yml")
+        vul_filepath = os.path.join(
+            vul.repo.path,
+            f"./aboutcode-vulnerabilities-{vulnerability_id[5:7]}/{vulnerability_id[10:12]}"
+            f"/{vulnerability_id}/{vulnerability_id}.yml",
+        )
         with open(vul_filepath) as f:
             return HttpResponse(json.dumps(f.read()))
 

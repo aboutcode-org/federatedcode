@@ -17,6 +17,7 @@ from django.urls import resolve
 from django.urls import reverse
 from git.repo.base import Repo
 from packageurl import PackageURL
+
 from federatedcode.settings import FEDERATED_CODE_DOMAIN
 
 
