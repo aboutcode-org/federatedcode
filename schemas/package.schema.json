@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/nexB/federatedcode/main/schemas/package.schema.json",
+  "title": "Package",
+  "type": "object",
+  "$defs": {
+    "Note": {
+      "description": "A Note is a message send by a Person or Package.\nThe content is either a plain text message or structured YAML.\nIf the author is a Package actor then the content is always YAML\nIf the author is a Person actor then the content is always plain text\nhttps://www.w3.org/TR/activitystreams-vocabulary/#dfn-note",
+      "properties": {
+        "reputation": {
+          "items": {
+            "$ref": "#/$defs/Reputation"
+          },
+          "title": "Reputation",
+          "type": "array"
+        },
+        "reply_to": {
+          "$ref": "#/$defs/Note"
+        },
+        "acct": {
+          "maxLength": 200,
+          "title": "Acct",
+          "type": "string"
+        },
+        "content": {
+          "title": "Content",
+          "type": "string"
+        },
+        "mediaType": {
+          "default": "text/plain",
+          "maxLength": 20,
+          "title": "mediaType",
+          "type": "string"
+        },
+        "created_at": {
+          "description": "A field to track when notes are created",
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "description": "A field to track when notes are updated",
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reputation",
+        "reply_to",
+        "acct",
+        "content",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "Note",
+      "type": "object"
+    },
+    "RemoteActor": {
+      "properties": {
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "username": {
+          "maxLength": 100,
+          "title": "Username",
+          "type": "string"
+        },
+        "created_at": {
+          "description": "A field to track when remote actor are created",
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "updated_at": {
+          "description": "A field to track when remote actor are updated",
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "username",
+        "created_at",
+        "updated_at"
+      ],
+      "title": "RemoteActor",
+      "type": "object"
+    },
+    "Reputation": {
+      "description": "https://www.w3.org/TR/activitystreams-vocabulary/#dfn-like\nhttps://www.w3.org/ns/activitystreams#Dislike",
+      "properties": {
+        "voter": {
+          "description": "security@vcio",
+          "maxLength": 100,
+          "title": "Voter",
+          "type": "string"
+        },
+        "positive": {
+          "default": true,
+          "title": "Positive",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "voter"
+      ],
+      "title": "Reputation",
+      "type": "object"
+    }
+  },
+  "description": "A software package identified by its package url ( PURL ) ignoring versions",
+  "properties": {
+    "remote_actor": {
+      "$ref": "#/$defs/RemoteActor"
+    },
+    "notes": {
+      "items": {
+        "$ref": "#/$defs/Note"
+      },
+      "title": "Notes",
+      "type": "array"
+    },
+    "summary": {
+      "description": "profile summary",
+      "maxLength": 100,
+      "title": "Summary",
+      "type": "string"
+    },
+    "public_key": {
+      "title": "Public Key",
+      "type": "string"
+    },
+    "local": {
+      "default": true,
+      "title": "Local",
+      "type": "boolean"
+    },
+    "purl": {
+      "description": "PURL (no version) ex: @pkg:maven/org.apache.logging",
+      "maxLength": 300,
+      "title": "Purl",
+      "type": "string"
+    }
+  },
+  "required": [
+    "remote_actor",
+    "notes",
+    "summary",
+    "public_key",
+    "purl"
+  ]
+}
