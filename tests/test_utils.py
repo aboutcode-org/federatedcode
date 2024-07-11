@@ -76,7 +76,7 @@ def test_full_reverse():
 
 def test_full_resolve():
     assert full_resolve(f"https://127.0.0.1:8000/notes/7e676ad1-995d-405c-a829-cb39813c74e5") == (
-        {"note_id": uuid.UUID("7e676ad1-995d-405c-a829-cb39813c74e5")},
+        {"note_id": "7e676ad1-995d-405c-a829-cb39813c74e5"},
         "note-page",
     )
 
