@@ -69,6 +69,7 @@ pytest==7.3.2
 pytest-django==4.5.2
 pytest-xdist==3.5.0
 python-dateutil==2.8.2
+pydantic==2.8.2
 pytz==2023.3
 PyYAML==6.0.1
 readme-renderer==42.0
