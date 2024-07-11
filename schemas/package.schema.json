@@ -17,6 +17,19 @@
         "reply_to": {
           "$ref": "#/$defs/Note"
         },
+        "id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The object's unique global identifier",
+          "title": "Id"
+        },
         "acct": {
           "maxLength": 200,
           "title": "Acct",
@@ -99,6 +112,19 @@
     "Reputation": {
       "description": "https://www.w3.org/TR/activitystreams-vocabulary/#dfn-like\nhttps://www.w3.org/ns/activitystreams#Dislike",
       "properties": {
+        "object_id": {
+          "anyOf": [
+            {
+              "format": "uuid",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Object Id"
+        },
         "voter": {
           "description": "security@vcio",
           "maxLength": 100,
@@ -144,6 +170,19 @@
       "default": true,
       "title": "Local",
       "type": "boolean"
+    },
+    "id": {
+      "anyOf": [
+        {
+          "format": "uuid",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "The object's unique global identifier",
+      "title": "Id"
     },
     "purl": {
       "description": "PURL (no version) ex: @pkg:maven/org.apache.logging",

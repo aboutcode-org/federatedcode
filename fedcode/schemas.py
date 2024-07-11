@@ -25,7 +25,7 @@ class Repository(ModelSchema):
     """
     class Meta:
         model = models.Repository
-        exclude = ["id", "admin"]
+        exclude = ["admin"]
 
 
 class Vulnerability(ModelSchema):
@@ -33,8 +33,7 @@ class Vulnerability(ModelSchema):
 
     class Meta:
         model = models.Vulnerability
-        exclude = ["id"]
-
+        fields = "__all__"
 
 class Reputation(ModelSchema):
     """
@@ -43,7 +42,7 @@ class Reputation(ModelSchema):
     """
     class Meta:
         model = models.Reputation
-        fields = ["voter", "positive"]
+        fields = ["object_id", "voter", "positive"]
 
 
 class Note(ModelSchema):
@@ -59,7 +58,7 @@ class Note(ModelSchema):
 
     class Meta:
         model = models.Note
-        exclude = ["id"]
+        fields = "__all__"
 
 
 Note.model_rebuild()
@@ -74,4 +73,4 @@ class Package(ModelSchema):
 
     class Meta:
         model = models.Package
-        exclude = ["id", "service"]
+        exclude = ["service"]
