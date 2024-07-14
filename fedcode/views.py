@@ -49,9 +49,9 @@ from fedcode.forms import SearchRepositoryForm
 from fedcode.forms import SearchReviewForm
 from fedcode.forms import SubscribePackageForm
 from federatedcode.settings import AP_CONTENT_TYPE
-from federatedcode.settings import FEDERATEDCODE_DOMAIN
 from federatedcode.settings import FEDERATEDCODE_CLIENT_ID
 from federatedcode.settings import FEDERATEDCODE_CLIENT_SECRET
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
 
 from .activitypub import AP_CONTEXT
 from .activitypub import create_activity_obj
