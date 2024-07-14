@@ -7,6 +7,7 @@ services:
       - docker.env
     volumes:
       - federatedcode_db_data:/var/lib/postgresql/data/
+
   federatedcode:
     build: .
     command: /bin/sh -c "
@@ -25,6 +26,7 @@ services:
       - /etc/federatedcode/:/etc/federatedcode/
     depends_on:
       - federatedcode_db
+
   federatedcode_nginx:
     image: nginx
     env_file:
@@ -33,6 +35,7 @@ services:
       - ./etc/nginx/conf.d/:/etc/nginx/conf.d
     depends_on:
       - federatedcode
+
 volumes:
   federatedcode_db_data:
   federatedcode_static:
