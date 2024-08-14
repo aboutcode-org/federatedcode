@@ -10,18 +10,40 @@ import json
 from unittest import mock
 
 import pytest
+from django.contrib.auth.models import User
 
 from fedcode.activitypub import AP_CONTEXT
 from fedcode.activitypub import create_activity_obj
 from fedcode.models import Follow
 from fedcode.models import Note
+from fedcode.models import Package
+from fedcode.models import Person
 from fedcode.models import RemoteActor
+from fedcode.models import Service
 from fedcode.utils import file_data
 
-from .test_models import package
-from .test_models import person
-from .test_models import remote_person
-from .test_models import service
+
+@pytest.fixture
+def service(db):
+    user = User.objects.create(username="vcio", email="vcio@nexb.com", password="complex-password")
+    return Service.objects.create(user=user)
+
+
+@pytest.fixture
+def package(db, service):
+    return Package.objects.create(purl="pkg:maven/org.apache.logging", service=service)
+
+
+@pytest.fixture
+def person(db):
+    user1 = User.objects.create(username="ziad", email="ziad@nexb.com", password="complex-password")
+    return Person.objects.create(user=user1, summary="Hello World", public_key="PUBLIC_KEY")
+
+
+@pytest.fixture
+def remote_person(db):
+    remote_user1 = RemoteActor.objects.create(url="127.0.0.2", username="remote-ziad")
+    return Person.objects.create(remote_actor=remote_user1)
 
 
 @mock.patch("httpx.Client")

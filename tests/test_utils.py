@@ -7,7 +7,6 @@
 # See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import json
-import uuid
 
 import pytest
 

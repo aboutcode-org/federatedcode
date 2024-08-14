@@ -9,33 +9,48 @@
 import json
 
 import pytest
+from django.contrib.auth.models import User
 from django.test import Client
 
+from fedcode.models import Package
+from fedcode.models import Person
+from fedcode.models import Service
 from fedcode.utils import generate_webfinger
 from federatedcode.settings import FEDERATEDCODE_DOMAIN
 
-from .test_models import package
-from .test_models import person
-from .test_models import service
+
+@pytest.fixture
+def service(db):
+    user = User.objects.create(username="vcio", email="vcio@nexb.com", password="complex-password")
+    return Service.objects.create(user=user)
+
+
+@pytest.fixture
+def package(db, service):
+    return Package.objects.create(purl="pkg:maven/org.apache.logging", service=service)
+
+
+@pytest.fixture
+def person(db):
+    user1 = User.objects.create(
+        username="ziad",
+        email="ziad@nexb.com",
+        password="complex-password",
+    )
+    return Person.objects.create(user=user1, summary="Hello World", public_key="PUBLIC_KEY")
 
 
 @pytest.mark.django_db
 def test_webfinger(person, service, package):
     client = Client()
     person_acct = "acct:" + generate_webfinger(person.user.username)
-    response_person = client.get(
-        f"/.well-known/webfinger?resource={person_acct}",
-    )
+    response_person = client.get(f"/.well-known/webfinger?resource={person_acct}")
 
     service_acct = "acct:" + generate_webfinger(service.user.username)
-    response_service = client.get(
-        f"/.well-known/webfinger?resource={service_acct}",
-    )
+    response_service = client.get(f"/.well-known/webfinger?resource={service_acct}")
 
     package_acct = "acct:" + generate_webfinger(package.purl)
-    response_purl = client.get(
-        f"/.well-known/webfinger?resource={package_acct}",
-    )
+    response_purl = client.get(f"/.well-known/webfinger?resource={package_acct}")
 
     assert json.loads(response_person.content) == {
         "subject": person_acct,
