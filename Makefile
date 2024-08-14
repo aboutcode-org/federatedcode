@@ -14,8 +14,13 @@ MANAGE=${VENV}/bin/python manage.py
 ACTIVATE?=. ${VENV}/bin/activate;
 MANAGE=${VENV}/bin/python manage.py
 BLACK_ARGS=--exclude=".cache|migrations|data|venv|lib|bin|var|etc"
-# Do not depend on Python to generate the SECRET_KEY
+
+# Do not depend on Python to generate the SECRET_KEY and other ids
 GET_SECRET_KEY=`base64 /dev/urandom | head -c50`
+GET_FEDERATEDCODE_CLIENT_ID=`base64 /dev/urandom | head -c40`
+GET_FEDERATEDCODE_CLIENT_SECRET=`base64 /dev/urandom | head -c128`
+
+
 # Customize with `$ make envfile ENV_FILE=/etc/federatedcode/.env`
 ENV_FILE=.env
 # Customize with `$ make postgres FEDERATEDCODE_DB_PASSWORD=YOUR_PASSWORD`
@@ -38,10 +43,12 @@ dev:
 	./configure --dev
 
 envfile:
-	@echo "-> Create the .env file and generate a secret key"
+	@echo "-> Create the .env file and generate secret keys and client id"
 	@if test -f ${ENV_FILE}; then echo ".env file exists already"; exit 1; fi
 	@mkdir -p $(shell dirname ${ENV_FILE}) && touch ${ENV_FILE}
-	@echo SECRET_KEY=\"${GET_SECRET_KEY}\" > ${ENV_FILE}
+	@echo SECRET_KEY=\"${GET_SECRET_KEY}\" >> ${ENV_FILE}
+	@echo FEDERATEDCODE_CLIENT_ID=\"${GET_FEDERATEDCODE_CLIENT_ID}\" >> ${ENV_FILE}
+	@echo FEDERATEDCODE_CLIENT_SECRET=\"${GET_FEDERATEDCODE_CLIENT_SECRET}\" >> ${ENV_FILE}
 
 isort:
 	@echo "-> Apply isort changes to ensure proper imports ordering"
@@ -96,7 +103,7 @@ postgresdb:
 	@echo "-> Create database user ${FEDERATEDCODE_DB_NAME}"
 	@${SUDO_POSTGRES} createuser --no-createrole --no-superuser --login --inherit --createdb '${FEDERATEDCODE_DB_USER}' || true
 	@${SUDO_POSTGRES} psql -c "alter user ${FEDERATEDCODE_DB_USER} with encrypted password '${FEDERATEDCODE_DB_PASSWORD}';" || true
-	@echo "-> Drop ${SCANCODEIO_DB_NAME} database"
+	@echo "-> Drop ${FEDERATEDCODE_DB_NAME} database"
 	@${SUDO_POSTGRES} dropdb ${FEDERATEDCODE_DB_NAME} || true
 	@echo "-> Create ${FEDERATEDCODE_DB_NAME} database"
 	@${SUDO_POSTGRES} createdb --owner=${FEDERATEDCODE_DB_USER} ${POSTGRES_INITDB_ARGS} ${FEDERATEDCODE_DB_NAME}
@@ -107,6 +114,6 @@ backupdb:
 
 run:
 	@echo "-> Starting development server"
-	${MANAGE} runserver 8002 --insecure
+	${MANAGE} runserver 8000 --insecure
 
 .PHONY: dev envfile isort black doc8 valid bandit check check-deploy clean migrate test docs  postgresdb backupdb run
