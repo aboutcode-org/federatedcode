@@ -161,6 +161,7 @@ IS_TESTS = any(t in sys.argv for t in ("test", "pytest"))
 
 if IS_TESTS:
     import tempfile
+
     # Do not pollute the workspace while running the tests.
     FEDERATEDCODE_WORKSPACE_LOCATION = tempfile.mkdtemp()
     FEDERATEDCODE_REQUIRE_AUTHENTICATION = True

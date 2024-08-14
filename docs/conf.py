@@ -50,8 +50,7 @@ autodoc_default_options = {
     # Keep the source code order for the autodoc content, as we want to keep
     # the processing order
     "member-order": "bysource",
-    "exclude-members": (
-    ),
+    "exclude-members": (),
 }
 
 # -- Options for HTML output -------------------------------------------------
