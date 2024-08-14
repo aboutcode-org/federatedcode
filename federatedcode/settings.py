@@ -45,9 +45,9 @@ AP_CONTENT_TYPE = "application/activity+json"
 
 FEDERATEDCODE_LOG_LEVEL = env.str("FEDERATEDCODE_LOG_LEVEL", "INFO")
 
-# Use True for production
+# Use False for development
 FEDERATEDCODE_REQUIRE_AUTHENTICATION = env.bool(
-    "FEDERATEDCODE_REQUIRE_AUTHENTICATION", default=False
+    "FEDERATEDCODE_REQUIRE_AUTHENTICATION", default=True
 )
 # The DNS host, port and "domain"
 FEDERATEDCODE_HOST = env.str("FEDERATEDCODE_HOST", "127.0.0.1")
@@ -160,6 +160,7 @@ AUTH_PASSWORD_VALIDATORS = [
 IS_TESTS = any(t in sys.argv for t in ("test", "pytest"))
 
 if IS_TESTS:
+    import tempfile
     # Do not pollute the workspace while running the tests.
     FEDERATEDCODE_WORKSPACE_LOCATION = tempfile.mkdtemp()
     FEDERATEDCODE_REQUIRE_AUTHENTICATION = True

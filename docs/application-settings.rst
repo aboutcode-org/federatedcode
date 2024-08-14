@@ -21,12 +21,13 @@ file.
 DATABASE
 --------
 
-The database can be configured using the following settings::
+The database can be configured using the following settings (we list the defaults here)::
 
+    FEDERATEDCODE_DB_ENGINE=django.db.backends.postgresql
     FEDERATEDCODE_DB_HOST=localhost
     FEDERATEDCODE_DB_NAME=federatedcode
-    FEDERATEDCODE_DB_USER=user
-    FEDERATEDCODE_DB_PASSWORD=password
+    FEDERATEDCODE_DB_USER=federatedcode
+    FEDERATEDCODE_DB_PASSWORD=federatedcode
     FEDERATEDCODE_DB_PORT=5432
 
 .. _federatedcode_settings_require_authentication:
@@ -34,15 +35,15 @@ The database can be configured using the following settings::
 FEDERATEDCODE_REQUIRE_AUTHENTICATION
 -----------------------------------------
 
-By default, the FederatedCode Web UI and REST API are available without any
+By default, the FederatedCode Web UI and REST API are only available with
 authentication.
 
-The authentication system can be enable with this settings::
+The authentication system can be disabled with this settings::
 
-    FEDERATEDCODE_REQUIRE_AUTHENTICATION=True
+    FEDERATEDCODE_REQUIRE_AUTHENTICATION=False
 
-Once enabled, all the Web UI views and REST API endpoints will force the user to login
-to gain access.
+Once disabled, all the Web UI views and REST API endpoints will stop forcing the user
+to login to gain access.
 
 A management command :ref:`cli_create_user` is available to create users and
 generate their API key for authentication.
@@ -67,43 +68,6 @@ See :ref:`project_workspace` for more details.
 
 .. _federatedcode_settings_config_dir:
 
-FEDERATEDCODE_CONFIG_DIR
-------------------------------
-
-The location of the :guilabel:`.scancode/` configuration directory within the project
-codebase.
-
-Default: ``.scancode``
-
-This directory allows to provide configuration files and customization for a FederatedCode
-project directly through the codebase files.
-
-For example, to provide a custom attribution template to your project, add it in a
-:guilabel:`.scancode/` directory located at the root of your codebase before uploading
-it to FederatedCode. The expected location of the attribution template is::
-
-  .scancode/templates/attribution.html
-
-
-FEDERATEDCODE_PAGINATE_BY
--------------------------------
-
-The number of objects display per page for each object type can be customized with the
-following setting::
-
-    FEDERATEDCODE_PAGINATE_BY=project=30,error=50,resource=100,package=100,dependency=100
-
-FEDERATEDCODE_REST_API_PAGE_SIZE
----------------------------------------
-
-A numeric value indicating the number of objects returned per page in the REST API::
-
-    FEDERATEDCODE_REST_API_PAGE_SIZE=100
-
-Default: ``50``
-
-.. warning::
-    Using a large page size may have an impact on performances.
 
 FEDERATEDCODE_LOG_LEVEL
 ------------------------
@@ -135,13 +99,11 @@ TIME_ZONE
 ---------
 
 A string representing the time zone for the current FederatedCode installation. By
-default the ``UTC`` time zone is used::
+default the ``UTC`` time zone is used. Use it to set another zone::
 
     TIME_ZONE=Europe/Paris
 
 .. note::
     You can view a detailed list of time zones `here.
     <https://en.wikipedia.org/wiki/List_of_tz_database_time_zones>`_
-
-.. _federatedcode_settings_purldb:
 
