@@ -3,9 +3,9 @@ name: run tests
 on: [push, pull_request]
 
 env:
-  FEDERATED_CODE_HOST: 127.0.0.1
-  FEDERATED_CODE_PORT: 8000
-  FEDERATED_CODE_DOMAIN: 127.0.0.1:8000
+  FEDERATEDCODE_HOST: 127.0.0.1
+  FEDERATEDCODE_PORT: 8000
+  FEDERATEDCODE_DOMAIN: 127.0.0.1:8000
   POSTGRES_HOST: 127.0.0.1
   POSTGRES_DB: federatedcode
   POSTGRES_USER: federatedcode
@@ -38,12 +38,12 @@ jobs:
         run: make dev
 
       - name: Run tests
-        run: make test
+        run: make envfile && make test
         env:
           GH_TOKEN: 1
-          FEDERATED_CODE_HOST:  ${{ env.FEDERATED_CODE_HOST }}
-          FEDERATED_CODE_PORT: ${{ env.FEDERATED_CODE_PORT }}
-          FEDERATED_CODE_DOMAIN: ${{ env.FEDERATED_CODE_DOMAIN }}
+          FEDERATEDCODE_HOST:  ${{ env.FEDERATEDCODE_HOST }}
+          FEDERATEDCODE_PORT: ${{ env.FEDERATEDCODE_PORT }}
+          FEDERATEDCODE_DOMAIN: ${{ env.FEDERATEDCODE_DOMAIN }}
           POSTGRES_HOST: ${{ env.POSTGRES_HOST }}
           POSTGRES_DB: ${{ env.POSTGRES_DB }}
           POSTGRES_USER: ${{ env.POSTGRES_USER }}
