@@ -28,9 +28,9 @@ CLI_ARGS=$1
 ################################
 
 # Requirement arguments passed to pip and used by default or with --dev.
-REQUIREMENTS="--editable . -r requirements.txt"
-DEV_REQUIREMENTS="--editable .[testing] -r requirements.txt -r requirements-dev.txt"
-DOCS_REQUIREMENTS="--editable .[docs] -r requirements.txt"
+REQUIREMENTS="--editable . --requirement requirements.txt"
+DEV_REQUIREMENTS="--editable .[testing] --requirement requirements.txt --requirement requirements-dev.txt"
+DOCS_REQUIREMENTS="--editable .[docs] --requirement requirements.txt"
 
 # where we create a virtualenv
 VIRTUALENV_DIR=venv

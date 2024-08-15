@@ -96,7 +96,7 @@ test:
 
 docs:
 	rm -rf docs/_build/
-	@${ACTIVATE} sphinx-build docs/source docs/_build/
+	@${ACTIVATE} sphinx-build docs/ docs/_build/
 
 postgresdb:
 	@echo "-> Configure PostgreSQL database"
