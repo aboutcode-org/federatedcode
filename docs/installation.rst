@@ -46,10 +46,10 @@ required for the creation of the base container image.
 
     git config --global core.autocrlf false
 
-**Clone the git** `FederatedCode repo <https://github.com/nexB/federatedcode>`_,
+**Clone the git** `FederatedCode repo <https://github.com/aboutcode-org/federatedcode>`_,
 create an **environment file**, and **build the container image**::
 
-    git clone https://github.com/nexB/federatedcode.git && cd federatedcode
+    git clone https://github.com/aboutcode-org/federatedcode.git && cd federatedcode
     make envfile
     docker compose build
 
@@ -70,9 +70,7 @@ Go to http://localhost/ on a web browser to **access the web UI**.
 An overview of the web application usage is available at :ref:`user_interface`.
 
 .. note::
-    Congratulations, you are now ready to use FederatedCode, and you can move onto the
-    **Tutorials** section starting with the :ref:`tutorial_web_ui_analyze_docker_image`
-    tutorial.
+    Congratulations, you are now ready to use FederatedCode.
 
 .. warning::
     To access a containerized FederatedCode app from a remote location, the ``ALLOWED_HOSTS``
@@ -97,7 +95,7 @@ An overview of the web application usage is available at :ref:`user_interface`.
 Upgrade the App
 ^^^^^^^^^^^^^^^
 
-**Update your local** `FederatedCode repo <https://github.com/nexB/federatedcode>`_,
+**Update your local** `FederatedCode repo <https://github.com/aboutcode-org/federatedcode>`_,
 and **re build the base container image**::
 
     cd federatedcode
@@ -112,7 +110,7 @@ and **re build the base container image**::
 
         docker compose run -u 0:0 web chown -R app:app /var/federatedcode/
 
-    See also a related issue in ScanCode.io https://github.com/nexB/scancode.io/issues/399
+    See also a related issue in ScanCode.io https://github.com/aboutcode-org/scancode.io/issues/399
 
 .. note::
     You need to rebuild the image whenever FederatedCode's source code has been
@@ -174,9 +172,9 @@ Make sure those are installed before attempting a local FederatedCode installati
 Clone and Configure
 ^^^^^^^^^^^^^^^^^^^
 
- * Clone the `FederatedCode GitHub repository <https://github.com/nexB/federatedcode>`_::
+ * Clone the `FederatedCode GitHub repository <https://github.com/aboutcode-org/federatedcode>`_::
 
-    git clone https://github.com/nexB/federatedcode.git && cd federatedcode
+    git clone https://github.com/aboutcode-org/federatedcode.git && cd federatedcode
 
  * Inside the :guilabel:`federatedcode/` directory, install the required dependencies::
 

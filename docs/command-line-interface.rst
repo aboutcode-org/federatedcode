@@ -26,10 +26,5 @@ multiple ``federatedcode`` commands::
 
     .. code-block:: bash
 
-        docker compose run --volume /home/sources:/sources:ro \
-            web scanpipe create-project my_project --input-file="/sources/image.tar"
+        docker compose run --volume /home/sources:/sources:ro -it bash
 
-.. note::
-    In a local development installation, the ``scanpipe`` command is directly
-    available as an entry point in your virtualenv and is located at
-    ``<scancode.io_root_dir>/bin/scanpipe``.

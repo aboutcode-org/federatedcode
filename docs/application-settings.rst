@@ -45,8 +45,6 @@ The authentication system can be disabled with this settings::
 Once disabled, all the Web UI views and REST API endpoints will stop forcing the user
 to login to gain access.
 
-A management command :ref:`cli_create_user` is available to create users and
-generate their API key for authentication.
 
 See :ref:`rest_api_authentication` for details on using the ``API key``
 authentication system in the REST API.
@@ -56,15 +54,14 @@ authentication system in the REST API.
 FEDERATEDCODE_WORKSPACE_LOCATION
 -----------------------------------
 
-This setting defines the workspace location of a given project.
-The **workspace** is the directory where **all of the project's files are stored**
-, such as input, codebase, and output files::
+This setting defines the workspace location of a given instance.
+The **workspace** is the directory where **all of the instance's work files are stored**
+including the clone of git repositories::
 
     FEDERATEDCODE_WORKSPACE_LOCATION=/var/federatedcode/workspace/
 
 It defaults to a :guilabel:`var/` directory in the local FederatedCode codebase.
 
-See :ref:`project_workspace` for more details.
 
 .. _federatedcode_settings_config_dir:
 
@@ -72,8 +69,7 @@ See :ref:`project_workspace` for more details.
 FEDERATEDCODE_LOG_LEVEL
 ------------------------
 
-By default, only a minimum of logging messages is displayed in the console, mostly
-to provide some progress about pipeline run execution.
+By default, only a minimum of logging messages is displayed in the console.
 
 Default: ``INFO``
 
@@ -83,17 +79,18 @@ This mode can be enabled globally through the ``.env`` file::
 
     FEDERATEDCODE_LOG_LEVEL=DEBUG
 
-Or, in the context of running a :ref:`scanpipe command <command_line_interface>`:
+Or, in the context of running a :ref:`command <command_line_interface>`:
 
 .. code-block:: console
 
-    $ FEDERATEDCODE_LOG_LEVEL=DEBUG bin/scanpipe [command]
+    $ FEDERATEDCODE_LOG_LEVEL=DEBUG <command>
 
-The web server can be started in DEBUG mode with:
+For instance, the web server can be started in DEBUG mode with:
 
 .. code-block:: console
 
     $ FEDERATEDCODE_LOG_LEVEL=DEBUG make run
+
 
 TIME_ZONE
 ---------

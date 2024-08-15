@@ -30,6 +30,7 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinxcontrib_django",
     "sphinx_rtd_dark_mode",  # For the Dark Mode
+    "sphinx-jsonschema",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -50,7 +51,15 @@ autodoc_default_options = {
     # Keep the source code order for the autodoc content, as we want to keep
     # the processing order
     "member-order": "bysource",
-    "exclude-members": (),
+    "exclude-members": (
+        "DoesNotExist, "
+        "MultipleObjectsReturned, "
+        "objects, "
+        "from_db, "
+        "get_absolute_url, "
+        "get_next_by_created_date, "
+        "get_previous_by_created_date"
+    ),
 }
 
 # -- Options for HTML output -------------------------------------------------
