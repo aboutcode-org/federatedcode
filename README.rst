@@ -19,6 +19,8 @@ On a Debian system, use this::
     source venv/bin/activate
     make run
 
+Note that we support Python 3.10 an up only.
+
 Configuration
 -------------------
 
