@@ -27,6 +27,10 @@ from federatedcode.settings import FEDERATEDCODE_WORKSPACE_LOCATION
 
 
 class RemoteActor(models.Model):
+    """
+    Represent a remote actor with its username
+    """
+
     url = models.URLField(primary_key=True)
     username = models.CharField(max_length=100)
     created_at = models.DateTimeField(
@@ -38,6 +42,10 @@ class RemoteActor(models.Model):
 
 
 class Actor(models.Model):
+    """
+    Represent a local or remote actor
+    """
+
     summary = models.CharField(help_text="profile summary", max_length=100)
     public_key = models.TextField(blank=False)
     local = models.BooleanField(default=True)
@@ -48,6 +56,8 @@ class Actor(models.Model):
 
 class Reputation(models.Model):
     """
+    Reputation of a package or vulnerability.
+
     https://www.w3.org/TR/activitystreams-vocabulary/#dfn-like
     https://www.w3.org/ns/activitystreams#Dislike
     """
@@ -79,7 +89,7 @@ class Reputation(models.Model):
 
 class Service(models.Model):
     """
-    A AdminUser is a special user that can manage git repositories ( sync , create )
+    A Service is a special user that can manage git repositories ( sync , create )
     """
 
     user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
@@ -168,7 +178,7 @@ class Note(models.Model):
 
 class Package(Actor):
     """
-    A software package identified by its package url ( PURL ) ignoring versions
+    A software package is an Actor identified by its package url ( PURL ) ignoring versions
     """
 
     id = models.UUIDField(
@@ -346,6 +356,10 @@ class Person(Actor):
 
 
 class Follow(models.Model):
+    """
+    A Follow relates a person to a package that "follows" a package.
+    """
+
     person = models.ForeignKey(Person, on_delete=models.CASCADE, help_text="")
     package = models.ForeignKey(Package, on_delete=models.CASCADE, help_text="")
     created_at = models.DateTimeField(auto_now_add=True, help_text="")
@@ -420,6 +434,10 @@ class Repository(models.Model):
 
 
 class Vulnerability(models.Model):
+    """
+    A vulnerability tracked by its VulnerableCode VCID
+    """
+
     id = models.CharField(
         primary_key=True,
         max_length=20,
@@ -450,6 +468,10 @@ class Vulnerability(models.Model):
 
 
 class Review(models.Model):
+    """
+    A review tracks the review comments on a Package or Vulnerability.
+    """
+
     id = models.UUIDField(
         primary_key=True,
         editable=False,
