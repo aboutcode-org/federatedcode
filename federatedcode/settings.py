@@ -12,17 +12,18 @@ from pathlib import Path
 
 import environ
 
-PROJECT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = PROJECT_DIR.parent
+PROJECT_DIR = environ.Path(__file__) - 1
+ROOT_DIR = PROJECT_DIR - 1
+
 
 # Environment
 
 ENV_FILE = "/etc/federatedcode/.env"
 if not Path(ENV_FILE).exists():
-    ENV_FILE = ROOT_DIR / ".env"
+    ENV_FILE = ROOT_DIR(".env")
 
 env = environ.Env()
-environ.Env.read_env(str(ENV_FILE))
+environ.Env.read_env(ENV_FILE)
 
 # Security
 
@@ -56,13 +57,12 @@ FEDERATEDCODE_DOMAIN = env.str("FEDERATEDCODE_DOMAIN", f"{FEDERATEDCODE_HOST}:{F
 
 # directory location of the workspace where we store Git repos and content
 # default to var/ in current directory in development
-FEDERATEDCODE_WORKSPACE_LOCATION = env.str("FEDERATEDCODE_WORKSPACE_LOCATION", ROOT_DIR / "var")
+FEDERATEDCODE_WORKSPACE_LOCATION = env.str("FEDERATEDCODE_WORKSPACE_LOCATION", "var")
 
 # these do NOT have a default
 FEDERATEDCODE_CLIENT_ID = env.str("FEDERATEDCODE_CLIENT_ID")
 FEDERATEDCODE_CLIENT_SECRET = env.str("FEDERATEDCODE_CLIENT_SECRET")
 
-FEDERATEDCODE_STATIC_ROOT = "/var/federatedcode/static/"
 
 # Application definition
 
@@ -103,6 +103,7 @@ SECURE_PROXY_SSL_HEADER = env.tuple(
 )
 
 # Database
+
 DATABASES = {
     "default": {
         "ENGINE": env.str("FEDERATEDCODE_DB_ENGINE", "django.db.backends.postgresql"),
@@ -115,9 +116,9 @@ DATABASES = {
     }
 }
 
-
 DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 
+# Templates
 
 TEMPLATES = [
     {
@@ -237,15 +238,8 @@ STATIC_URL = "/static/"
 STATIC_ROOT = env.str("STATIC_ROOT", default="/var/federatedcode/static/")
 
 STATICFILES_DIRS = [
-    PROJECT_DIR / "static",
+    PROJECT_DIR("static"),
 ]
-
-
-# Django restframework
-
-
-MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(ROOT_DIR, "media")
 
 
 # Django restframework
@@ -267,13 +261,15 @@ REST_FRAMEWORK = {
         "rest_framework.filters.SearchFilter",
     ),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": env.int("FEDEREATEDCDOE_REST_API_PAGE_SIZE", default=50),
+    "PAGE_SIZE": env.int("FEDERATEDCODE_REST_API_PAGE_SIZE", default=50),
     "UPLOADED_FILES_USE_URL": False,
 }
 
 
 if not FEDERATEDCODE_REQUIRE_AUTHENTICATION:
-    REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"] = ("rest_framework.permissions.AllowAny",)
+    REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"] = (
+        "rest_framework.permissions.AllowAny",
+    )
 
 
 OAUTH2_PROVIDER = {
