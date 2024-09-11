@@ -267,9 +267,7 @@ REST_FRAMEWORK = {
 
 
 if not FEDERATEDCODE_REQUIRE_AUTHENTICATION:
-    REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"] = (
-        "rest_framework.permissions.AllowAny",
-    )
+    REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"] = ("rest_framework.permissions.AllowAny",)
 
 
 OAUTH2_PROVIDER = {
