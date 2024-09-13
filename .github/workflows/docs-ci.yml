@@ -19,11 +19,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Configure env
-        run:  make dev && ./configure --docs
+      - name: Install Dependencies
+        run:  pip install -e .[docs]
 
       - name: Check Sphinx Documentation build minimally
-        run: make docs
+        working-directory: ./docs
+        run: python3 -m sphinx -E -W source build
 
       - name: Check for documentation style errors
         working-directory: ./docs
