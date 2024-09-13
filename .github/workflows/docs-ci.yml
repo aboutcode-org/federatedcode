@@ -23,11 +23,8 @@ jobs:
         run:  pip install -e .[docs]
 
       - name: Check Sphinx Documentation build minimally
-        working-directory: ./docs
-        run: python3 -m sphinx -E -W source build
+        run: make docs
 
       - name: Check for documentation style errors
         working-directory: ./docs
         run: ./scripts/doc8_style_check.sh
-
-
