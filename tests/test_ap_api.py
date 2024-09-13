@@ -124,7 +124,7 @@ def test_get_ap_profile_user(person, service):
         "summary": "Hello World",
         "following": "https://127.0.0.1:8000/api/v0/users/@ziad/following/",
         "id": "https://127.0.0.1:8000/api/v0/users/@ziad",
-        "image": "https://127.0.0.1:8000/media/favicon-16x16.png",
+        "image": "https://127.0.0.1:8000/favicon-16x16.png",
         "inbox": "https://127.0.0.1:8000/api/v0/users/@ziad/inbox",
         "outbox": "https://127.0.0.1:8000/api/v0/users/@ziad/outbox",
         "publicKey": {
