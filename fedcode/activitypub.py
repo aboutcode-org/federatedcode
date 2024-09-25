@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import json
 import logging
@@ -20,17 +20,19 @@ from django.http import HttpResponseBadRequest
 from django.http import JsonResponse
 from django.urls import resolve
 
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import FEDERATED_CODE_GIT_PATH
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
+from federatedcode.settings import FEDERATEDCODE_WORKSPACE_LOCATION
 
-from .models import Follow, FederateRequest, SyncRequest
+from .models import FederateRequest
+from .models import Follow
 from .models import Note
-from .models import Person
 from .models import Package
+from .models import Person
 from .models import RemoteActor
 from .models import Repository
 from .models import Review
 from .models import Service
+from .models import SyncRequest
 from .models import Vulnerability
 from .utils import fetch_actor
 from .utils import full_resolve
@@ -57,7 +59,10 @@ AP_VALID_HEADERS = [
 ]
 
 AP_CONTEXT = {
-    "@context": ["https://www.w3.org/ns/activitystreams", "https://www.aboutcode.org/ns/federatedcode"],
+    "@context": [
+        "https://www.w3.org/ns/activitystreams",
+        "https://www.aboutcode.org/ns/federatedcode",
+    ],
 }
 
 AP_TARGET = {"cc": "https://www.w3.org/ns/activitystreams#Public"}
@@ -73,7 +78,7 @@ URL_MAPPER = {
     "user-ap-profile": "username",
     "purl-ap-profile": "purl_string",
     "review-page": "review_id",
-    "repository-page": 'repository_id',
+    "repository-page": "repository_id",
     "note-page": "note_id",
     "vulnerability-page": "vulnerability_id",
 }
@@ -136,7 +141,9 @@ class Activity:
             )
         else:
             ap_object = (
-                ApObject(**self.object) if isinstance(self.object, dict) else ApObject(id=self.object)
+                ApObject(**self.object)
+                if isinstance(self.object, dict)
+                else ApObject(id=self.object)
             )
         return ACTIVITY_MAPPER[self.type](actor=ap_actor, object=ap_object, to=self.to).save()
 
@@ -147,7 +154,7 @@ class Activity:
         """
         for target in targets:
             target_domain = urlparse(target).netloc
-            if target_domain != FEDERATED_CODE_DOMAIN:  # TODO Add a server whitelist if necessary
+            if target_domain != FEDERATEDCODE_DOMAIN:  # TODO Add a server whitelist if necessary
                 try:
                     FederateRequest.objects.create(target=target, body=body, key_id=key_id)
                 except Exception as e:
@@ -161,13 +168,12 @@ class Activity:
                 Note: lambda: {
                     CreateActivity,
                     UpdateActivity if object.acct == actor.acct else None,
-                    DeleteActivity if object.acct == actor.acct else None
+                    DeleteActivity if object.acct == actor.acct else None,
                 },
-
                 Review: lambda: {
                     CreateActivity,
                     UpdateActivity if object.author == actor else None,
-                    DeleteActivity if object.author == actor else None
+                    DeleteActivity if object.author == actor else None,
                 },
             },
             Service: {
@@ -175,16 +181,16 @@ class Activity:
                     CreateActivity,
                     SyncActivity if object.admin == actor else None,
                     UpdateActivity if object.admin == actor else None,
-                    DeleteActivity if object.admin == actor else None
+                    DeleteActivity if object.admin == actor else None,
                 }
             },
             Package: {
                 Note: lambda: {
                     CreateActivity,
                     UpdateActivity if object.acct == actor.acct else None,
-                    DeleteActivity if object.acct == actor.acct else None
+                    DeleteActivity if object.acct == actor.acct else None,
                 },
-            }
+            },
         }
 
         # Return the permissions for the specific actor and object type
@@ -261,6 +267,7 @@ class FollowActivity:
     """
     https://www.w3.org/ns/activitystreams#Follow
     """
+
     type = "Follow"
     actor: ApActor
     object: ApActor
@@ -357,6 +364,7 @@ class CreateActivity:
     """
     https://www.w3.org/TR/activitypub/#create-activity-outbox
     """
+
     type = "Create"
     actor: ApActor
     object: ApObject
@@ -411,7 +419,7 @@ class CreateActivity:
             if self.object.type == "Repository":
                 new_obj, created = Repository.objects.get_or_create(
                     url=self.object.url,
-                    path=FEDERATED_CODE_GIT_PATH,
+                    path=FEDERATEDCODE_WORKSPACE_LOCATION,
                     admin=actor,
                 )
 
@@ -445,6 +453,7 @@ class UpdateActivity:
     """
     https://www.w3.org/TR/activitystreams-vocabulary/#dfn-update
     """
+
     type = "Update"
     actor: ApActor
     object: ApObject
@@ -464,9 +473,9 @@ class UpdateActivity:
         }
 
         if (
-                (isinstance(actor, Person) and self.object.type in ["Note", "Review"])
-                or (isinstance(actor, Service) and self.object.type == "Repository")
-                or (isinstance(actor, Package) and self.object.type == "Note")
+            (isinstance(actor, Person) and self.object.type in ["Note", "Review"])
+            or (isinstance(actor, Service) and self.object.type == "Repository")
+            or (isinstance(actor, Package) and self.object.type == "Note")
         ) and UpdateActivity in Activity.get_actor_permissions(actor, old_obj)():
             for key, value in updated_param[self.object.type].items():
                 if value:
@@ -501,6 +510,7 @@ class DeleteActivity:
     """
     https://www.w3.org/ns/activitystreams#Delete
     """
+
     actor: ApActor
     object: ApObject
     type = "Delete"
@@ -512,9 +522,9 @@ class DeleteActivity:
             return self.failed_ap_rs()
 
         if (
-                (type(actor) is Person and self.object.type in ["Note", "Review"])
-                or (type(actor) is Package and self.object.type in ["Note"])
-                or (type(actor) is Service and self.object.type == ["Repository", "Package"])
+            (type(actor) is Person and self.object.type in ["Note", "Review"])
+            or (type(actor) is Package and self.object.type in ["Note"])
+            or (type(actor) is Service and self.object.type == ["Repository", "Package"])
         ):
             instance = self.object.get()
             if DeleteActivity in Activity.get_actor_permissions(actor, instance)():
@@ -557,6 +567,7 @@ def create_activity_obj(data):
 @dataclass
 class UnFollowActivity:
     """"""
+
     type = "UnFollow"
     actor: ApActor
     object: ApActor
@@ -600,6 +611,7 @@ class SyncActivity:
     can send a request to run the Importer and receive
     all the followed Package data
     """
+
     type = "Sync"
     actor: ApActor
     object: ApObject
@@ -642,11 +654,10 @@ def check_remote_actor(key_id):
     if valid remote actor return actor webfinger
     """
     parser = urlparse(key_id)
-    if parser.netloc == FEDERATED_CODE_DOMAIN:  # INVALID DOMAIN ( Server Domain )
+    if parser.netloc == FEDERATEDCODE_DOMAIN:  # INVALID DOMAIN ( Server Domain )
         return
 
     resolver = resolve(parser.path)
     obj_id, page_name = resolver.kwargs, resolver.url_name
     identity = URL_MAPPER[page_name]
     return webfinger_actor(parser.netloc, resolver.kwargs[identity])
-

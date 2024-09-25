@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import logging
 import os.path
@@ -64,8 +64,14 @@ class Importer:
             if os.path.split(diff.a_path)[1].startswith("VCID") or os.path.split(diff.b_path)[
                 1
             ].startswith("VCID"):
-                vul_handler(diff.change_type, self.repo_obj, yaml_data_a_blob, yaml_data_b_blob,
-                            diff.a_path, diff.b_path)
+                vul_handler(
+                    diff.change_type,
+                    self.repo_obj,
+                    yaml_data_a_blob,
+                    yaml_data_b_blob,
+                    diff.a_path,
+                    diff.b_path,
+                )
                 continue
 
             pkg_handler(
@@ -123,7 +129,7 @@ def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob
         pkg.save()
 
         for version_a, version_b in zip_longest(
-                yaml_data_a_blob.get("versions", []), yaml_data_b_blob.get("versions", [])
+            yaml_data_a_blob.get("versions", []), yaml_data_b_blob.get("versions", [])
         ):
             if version_b and not version_a:
                 create_note(pkg, version_b)

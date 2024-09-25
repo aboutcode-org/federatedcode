@@ -7,8 +7,9 @@
 # See https://aboutcode.org for more information about nexB OSS projects.
 #
 
-from ninja import ModelSchema
 from typing import List
+
+from ninja import ModelSchema
 
 from fedcode import models
 
@@ -23,6 +24,7 @@ class Repository(ModelSchema):
     """
     A git repository used as a backing storage for Package and vulnerability data
     """
+
     class Meta:
         model = models.Repository
         exclude = ["admin"]
@@ -35,11 +37,13 @@ class Vulnerability(ModelSchema):
         model = models.Vulnerability
         fields = "__all__"
 
+
 class Reputation(ModelSchema):
     """
     https://www.w3.org/TR/activitystreams-vocabulary/#dfn-like
     https://www.w3.org/ns/activitystreams#Dislike
     """
+
     class Meta:
         model = models.Reputation
         fields = ["object_id", "voter", "positive"]
@@ -53,6 +57,7 @@ class Note(ModelSchema):
     If the author is a Person actor then the content is always plain text
     https://www.w3.org/TR/activitystreams-vocabulary/#dfn-note
     """
+
     reputation: List[Reputation]
     reply_to: "Note"
 
@@ -68,6 +73,7 @@ class Package(ModelSchema):
     """
     A software package identified by its package url ( PURL ) ignoring versions
     """
+
     remote_actor: RemoteActor
     notes: List[Note]
 

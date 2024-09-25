@@ -1,44 +1,72 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 
 import uuid
 
 from django.contrib.auth.models import User
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.fields import GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from git import Repo
 
-from fedcode.utils import ap_collection, clone_git_repo
+from fedcode.utils import ap_collection
+from fedcode.utils import clone_git_repo
 from fedcode.utils import full_reverse
 from fedcode.utils import generate_webfinger
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import FEDERATED_CODE_GIT_PATH
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
+from federatedcode.settings import FEDERATEDCODE_WORKSPACE_LOCATION
 
 
 class RemoteActor(models.Model):
-    url = models.URLField(primary_key=True)
-    username = models.CharField(max_length=100)
-    created_at = models.DateTimeField(
-        auto_now_add=True, help_text="A field to track when remote actor are created"
+    """
+    Represent a remote actor with its username
+    """
+
+    url = models.URLField(
+        primary_key=True,
     )
+
+    username = models.CharField(
+        max_length=100,
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="A field to track when remote actor are created",
+    )
+
     updated_at = models.DateTimeField(
-        auto_now=True, help_text="A field to track when remote actor are updated"
+        auto_now=True,
+        help_text="A field to track when remote actor are updated",
     )
 
 
 class Actor(models.Model):
-    summary = models.CharField(help_text="profile summary", max_length=100)
-    public_key = models.TextField(blank=False)
-    local = models.BooleanField(default=True)
+    """
+    Represent a local or remote actor
+    """
+
+    summary = models.CharField(
+        help_text="profile summary",
+        max_length=100,
+    )
+
+    public_key = models.TextField(
+        blank=False,
+    )
+
+    local = models.BooleanField(
+        default=True,
+    )
 
     class Meta:
         abstract = True
@@ -46,33 +74,41 @@ class Actor(models.Model):
 
 class Reputation(models.Model):
     """
+    Reputation of a package or vulnerability.
+
     https://www.w3.org/TR/activitystreams-vocabulary/#dfn-like
     https://www.w3.org/ns/activitystreams#Dislike
     """
-    voter = models.CharField(max_length=100, help_text="security@vcio")
-    positive = models.BooleanField(default=True)  # Like vs Dislike
-    limit = (models.Q(app_label='fedcode', model='review') |
-             models.Q(app_label='fedcode', model='note'))
+
+    voter = models.CharField(
+        max_length=100,
+        help_text="security@vcio",
+    )
+
+    positive = models.BooleanField(
+        default=True,
+    )  # Like vs Dislike
+
+    limit = models.Q(app_label="fedcode", model="review") | models.Q(
+        app_label="fedcode", model="note"
+    )
 
     content_type = models.ForeignKey(
         ContentType,
         limit_choices_to=limit,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
     )
+
     object_id = models.UUIDField(
         null=True,
         blank=True,
-        db_index=True
+        db_index=True,
     )
-    content_object = GenericForeignKey('content_type', 'object_id')
 
-    @property
-    def to_ap(self):
-        return {
-            "type": "Like" if self.positive else "Dislike",
-            "actor": self.voter,
-            "object": self.content_object.to_ap
-        }
+    content_object = GenericForeignKey(
+        "content_type",
+        "object_id",
+    )
 
     class Meta:
         unique_together = [["voter", "content_type", "object_id"]]
@@ -80,14 +116,31 @@ class Reputation(models.Model):
             models.Index(fields=["content_type", "object_id"]),
         ]
 
+    @property
+    def to_ap(self):
+        return {
+            "type": "Like" if self.positive else "Dislike",
+            "actor": self.voter,
+            "object": self.content_object.to_ap,
+        }
+
 
 class Service(models.Model):
     """
-    A AdminUser is a special user that can manage git repositories ( sync , create )
+    A Service is a special user that can manage git repositories ( sync , create )
     """
-    user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
+
+    user = models.OneToOneField(
+        User,
+        null=True,
+        on_delete=models.CASCADE,
+    )
+
     remote_actor = models.OneToOneField(
-        RemoteActor, on_delete=models.CASCADE, null=True, blank=True
+        RemoteActor,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
 
     def __str__(self):
@@ -113,6 +166,7 @@ class Note(models.Model):
     If the author is a Person actor then the content is always plain text
     https://www.w3.org/TR/activitystreams-vocabulary/#dfn-note
     """
+
     # https://www.w3.org/TR/activitystreams-vocabulary/#dfn-mediatype
     id = models.UUIDField(
         primary_key=True,
@@ -120,8 +174,16 @@ class Note(models.Model):
         default=uuid.uuid4,
         help_text="The object's unique global identifier",
     )
-    acct = models.CharField(max_length=200)
-    content = models.TextField()
+
+    acct = models.CharField(
+        max_length=200,
+        help_text="Account that created this note",
+    )
+
+    content = models.TextField(
+        help_text="Text content for this note",
+    )
+
     reply_to = models.ForeignKey(
         "self",
         on_delete=models.SET_NULL,
@@ -130,15 +192,25 @@ class Note(models.Model):
         related_name="replies",
         help_text="",
     )
-    mediaType = models.CharField(max_length=20, default="text/plain")
-    created_at = models.DateTimeField(
-        auto_now_add=True, help_text="A field to track when notes are created"
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True, help_text="A field to track when notes are updated"
+
+    mediaType = models.CharField(
+        max_length=20,
+        default="text/plain",
     )
 
-    reputation = GenericRelation(Reputation)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="A field to track when notes are created",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="A field to track when notes are updated",
+    )
+
+    reputation = GenericRelation(
+        Reputation,
+    )
 
     class Meta:
         ordering = ["-updated_at"]
@@ -150,8 +222,8 @@ class Note(models.Model):
     @property
     def reputation_value(self):
         return (
-                self.reputation.filter(positive=True).count()
-                - self.reputation.filter(positive=False).count()
+            self.reputation.filter(positive=True).count()
+            - self.reputation.filter(positive=False).count()
         )
 
     @property
@@ -170,26 +242,44 @@ class Note(models.Model):
 
 class Package(Actor):
     """
-    A software package identified by its package url ( PURL ) ignoring versions
+    A software package is an Actor identified by its package url ( PURL ) ignoring versions
     """
+
     id = models.UUIDField(
         primary_key=True,
         default=uuid.uuid4,
         editable=False,
         help_text="The object's unique global identifier",
     )
+
     remote_actor = models.OneToOneField(
-        RemoteActor, on_delete=models.CASCADE, null=True, blank=True
+        RemoteActor,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
     )
-    service = models.ForeignKey(Service, null=True, blank=True, on_delete=models.CASCADE)
+
+    service = models.ForeignKey(
+        Service,
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+    )
+
     purl = models.CharField(
-        max_length=300, help_text="PURL (no version) ex: @pkg:maven/org.apache.logging", unique=True,
+        max_length=300,
+        help_text="PURL (no version) ex: @pkg:maven/org.apache.logging",
+        unique=True,
     )
-    notes = models.ManyToManyField(Note, blank=True, help_text="""the notes that this purl created ex:
-                                                               purl: pkg:.../.../
-                                                               affected_by_vulnerabilities: []
-                                                               fixing_vulnerabilities: []
-                                                               """)
+
+    notes = models.ManyToManyField(
+        Note,
+        blank=True,
+        help_text="""the notes created by this package""",
+    )
+
+    class Meta:
+        ordering = ["purl"]
 
     @property
     def acct(self):
@@ -264,19 +354,36 @@ class Person(Actor):
     """
     A person is a user can follow pacakge or just vote or create a notes
     """
+
     avatar = models.ImageField(
-        upload_to="uploads/", help_text="", default="favicon-16x16.png", null=True
-    )
-    user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
-    remote_actor = models.OneToOneField(
-        RemoteActor, on_delete=models.CASCADE, null=True, blank=True
+        upload_to="uploads/",
+        help_text="",
+        default="favicon-16x16.png",
+        null=True,
     )
 
-    notes = models.ManyToManyField(Note, blank=True, help_text="")
+    user = models.OneToOneField(
+        User,
+        null=True,
+        on_delete=models.CASCADE,
+    )
+
+    remote_actor = models.OneToOneField(
+        RemoteActor,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    notes = models.ManyToManyField(
+        Note,
+        blank=True,
+        help_text="Notes created by this user",
+    )
 
     @property
     def avatar_absolute_url(self):
-        return f'{"https://"}{FEDERATED_CODE_DOMAIN}{self.avatar.url}'
+        return f'{"https://"}{FEDERATEDCODE_DOMAIN}{self.avatar.url}'
 
     # TODO raise error if the user doesn't have a user or remote actor
     @property
@@ -340,10 +447,31 @@ class Person(Actor):
 
 
 class Follow(models.Model):
-    person = models.ForeignKey(Person, on_delete=models.CASCADE, help_text="")
-    package = models.ForeignKey(Package, on_delete=models.CASCADE, help_text="")
-    created_at = models.DateTimeField(auto_now_add=True, help_text="")
-    updated_at = models.DateTimeField(auto_now=True, help_text="")
+    """
+    A Follow relates a person to a package that "follows" a package.
+    """
+
+    person = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+        help_text="Person that follows",
+    )
+
+    package = models.ForeignKey(
+        Package,
+        on_delete=models.CASCADE,
+        help_text="Followed package",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Date created",
+    )
+
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text="Date updated",
+    )
 
     class Meta:
         ordering = ["-updated_at"]
@@ -356,25 +484,55 @@ class Repository(models.Model):
     """
     A git repository used as a backing storage for Package and vulnerability data
     """
+
     id = models.UUIDField(
         primary_key=True,
         editable=False,
         default=uuid.uuid4,
         help_text="The object's unique global identifier",
     )
-    url = models.URLField(help_text="Git Repository url ex: https://github.com/nexB/vulnerablecode-data")
-    path = models.CharField(max_length=200, help_text="path of the repository")
-    admin = models.ForeignKey(Service, on_delete=models.CASCADE, help_text="admin user ex: VCIO user")  #
-    remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="the url of the repository"
-                                                                                   " if this repository is remote")
-    last_imported_commit = models.CharField(max_length=64, blank=True, null=True)
+
+    url = models.URLField(
+        help_text="Git Repository url ex: https://github.com/nexB/vulnerablecode-data",
+    )
+
+    path = models.CharField(
+        max_length=200,
+        help_text="path of the repository",
+    )
+
+    admin = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE,
+        help_text="admin user ex: VCIO user",
+    )
+
+    remote_url = models.CharField(
+        max_length=300,
+        blank=True,
+        null=True,
+        help_text="the url of the repository" " if this repository is remote",
+    )
+
+    last_imported_commit = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+    )
 
     created_at = models.DateTimeField(
-        auto_now_add=True, help_text="A field to track when repository are created"
+        auto_now_add=True,
+        help_text="A field to track when repository are created",
     )
+
     updated_at = models.DateTimeField(
-        auto_now=True, help_text="A field to track when repository are updated"
+        auto_now=True,
+        help_text="A field to track when repository are updated",
     )
+
+    class Meta:
+        unique_together = [["admin", "url"]]
+        ordering = ["-updated_at"]
 
     def __str__(self):
         return self.url
@@ -386,10 +544,6 @@ class Repository(models.Model):
     @property
     def git_repo_obj(self):
         return Repo(self.path)
-
-    class Meta:
-        unique_together = [["admin", "url"]]
-        ordering = ["-updated_at"]
 
     @property
     def absolute_url(self):
@@ -405,15 +559,27 @@ class Repository(models.Model):
 
 
 class Vulnerability(models.Model):
+    """
+    A vulnerability tracked by its VulnerableCode VCID
+    """
+
     id = models.CharField(
         primary_key=True,
         max_length=20,
-        help_text="Unique identifier for a vulnerability in the external representation. "
-                  "It is prefixed with VCID-",
+        help_text="Unique vulnerability identifier 'VCID'",
     )
 
-    repo = models.ForeignKey(Repository, on_delete=models.CASCADE)
-    remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="")
+    repo = models.ForeignKey(
+        Repository,
+        on_delete=models.CASCADE,
+    )
+
+    remote_url = models.CharField(
+        max_length=300,
+        blank=True,
+        null=True,
+        help_text="",
+    )
 
     class Meta:
         unique_together = [["repo"]]
@@ -435,27 +601,68 @@ class Vulnerability(models.Model):
 
 
 class Review(models.Model):
+    """
+    A review tracks the review comments on a Package or Vulnerability.
+    """
+
     id = models.UUIDField(
         primary_key=True,
         editable=False,
         default=uuid.uuid4,
         help_text="The object's unique global identifier",
     )
-    headline = models.CharField(max_length=300, help_text="the review title")
-    author = models.ForeignKey(Person, on_delete=models.CASCADE)
-    repository = models.ForeignKey(Repository, on_delete=models.CASCADE)
-    filepath = models.CharField(max_length=300, help_text="the review path ex: /apache/httpd/VCID-1a68-fd5t-aaam.yml")
-    commit = models.CharField(max_length=300, help_text="ex: 104ccd6a7a41329b2953c96e52792a3d6a9ad8e5")
-    data = models.TextField(help_text="review data ex: vulnerability file")
-    notes = models.ManyToManyField(Note, blank=True, help_text="")
+
+    headline = models.CharField(
+        max_length=300,
+        help_text="the review title",
+    )
+
+    author = models.ForeignKey(
+        Person,
+        on_delete=models.CASCADE,
+    )
+
+    repository = models.ForeignKey(
+        Repository,
+        on_delete=models.CASCADE,
+    )
+
+    filepath = models.CharField(
+        max_length=300,
+        help_text="the review path ex: /apache/httpd/VCID-1a68-fd5t-aaam.yml",
+    )
+
+    commit = models.CharField(
+        max_length=300,
+        help_text="ex: 104ccd6a7a41329b2953c96e52792a3d6a9ad8e5",
+    )
+
+    data = models.TextField(
+        help_text="review data ex: vulnerability file",
+    )
+
+    notes = models.ManyToManyField(
+        Note,
+        blank=True,
+        help_text="",
+    )
+
     created_at = models.DateTimeField(
-        auto_now_add=True, help_text="A field to track when review are created"
+        auto_now_add=True,
+        help_text="A field to track when review are created",
     )
+
     updated_at = models.DateTimeField(
-        auto_now=True, help_text="A field to track when review are updated"
+        auto_now=True,
+        help_text="A field to track when review are updated",
     )
-    remote_url = models.CharField(max_length=300, blank=True, null=True, help_text="the review remote url if "
-                                                                                   "Remote Review exists")
+
+    remote_url = models.CharField(
+        max_length=300,
+        blank=True,
+        null=True,
+        help_text="the review remote url if " "Remote Review exists",
+    )
 
     class ReviewStatus(models.IntegerChoices):
         OPEN = 0
@@ -470,7 +677,10 @@ class Review(models.Model):
         default=0,
         help_text="status of review",
     )
-    reputation = GenericRelation(Reputation)
+
+    reputation = GenericRelation(
+        Reputation,
+    )
 
     class Meta:
         ordering = ["-updated_at"]
@@ -481,8 +691,8 @@ class Review(models.Model):
     @property
     def reputation_value(self):
         return (
-                self.reputation.filter(positive=True).count()
-                - self.reputation.filter(positive=False).count()
+            self.reputation.filter(positive=True).count()
+            - self.reputation.filter(positive=False).count()
         )
 
     @property
@@ -507,31 +717,62 @@ class Review(models.Model):
 
 
 class FederateRequest(models.Model):
-    target = models.URLField(help_text="The request target ex: (inbox of the targeted actor", blank=False, null=False)
-    body = models.TextField(help_text="The request body", blank=False, null=False)
-    key_id = models.URLField(help_text="The key url of the actor ex: https://my-example.com/actor#main-key",
-                             blank=False, null=False)
-    error_message = models.TextField()
-    created_at = models.DateTimeField(
-        auto_now_add=True, help_text="A field to track when review are created"
+    target = models.URLField(
+        help_text="The request target ex: (inbox of the targeted actor",
+        blank=False,
+        null=False,
     )
-    done = models.BooleanField(default=False)
+
+    body = models.TextField(
+        help_text="The request body",
+        blank=False,
+        null=False,
+    )
+
+    key_id = models.URLField(
+        help_text="The key url of the actor ex: https://my-example.com/actor#main-key",
+        blank=False,
+        null=False,
+    )
+
+    error_message = models.TextField(
+        help_text="Error message if a request failed to federate",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="A field to track when review are created",
+    )
+
+    done = models.BooleanField(
+        default=False, help_text="Flag set to true when the request completed"
+    )
 
 
 class SyncRequest(models.Model):
-    repo = models.ForeignKey(Repository, on_delete=models.CASCADE,
-                             help_text="The Git repository where the importer will run"
-                             )
-    error_message = models.TextField()
-    created_at = models.DateTimeField(
-        auto_now_add=True, help_text="A field to track when review are created"
+    repo = models.ForeignKey(
+        Repository,
+        on_delete=models.CASCADE,
+        help_text="The Git repository where the importer will run",
     )
-    done = models.BooleanField(default=False)
+
+    error_message = models.TextField(
+        help_text="Error message if a request failed to sync",
+    )
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="A field to track when review are created",
+    )
+
+    done = models.BooleanField(
+        default=False, help_text="Flag set to true when the request completed"
+    )
 
 
 @receiver(post_save, sender=Repository)
 def create_git_repo(sender, instance, created, **kwargs):
     if created:
-        repo = clone_git_repo(FEDERATED_CODE_GIT_PATH, instance.url)
+        repo = clone_git_repo(FEDERATEDCODE_WORKSPACE_LOCATION, instance.url)
         instance.path = repo.working_dir
         instance.save()

@@ -4,7 +4,6 @@ anyio==4.1.0
 asgiref==3.7.2
 attrs==23.1.0
 Babel==2.14.0
-black==23.7.0
 boolean.py==4.0
 certifi==2023.5.7
 cffi==1.15.1
@@ -65,9 +64,6 @@ psycopg2-binary==2.9.9
 pycodestyle==2.11.1
 pycparser==2.21
 Pygments==2.17.2
-pytest==7.3.2
-pytest-django==4.5.2
-pytest-xdist==3.5.0
 python-dateutil==2.8.2
 pydantic==2.8.2
 pytz==2023.3
@@ -84,19 +80,6 @@ six==1.16.0
 smmap==5.0.0
 sniffio==1.3.0
 snowballstemmer==2.2.0
-Sphinx==7.2.6
-sphinx-autobuild==2021.3.14
-sphinx-copybutton==0.5.2
-sphinx-reredirects==0.1.3
-sphinx-rtd-dark-mode==1.3.0
-sphinx-rtd-theme==2.0.0
-sphinxcontrib-applehelp==1.0.7
-sphinxcontrib-devhelp==1.0.5
-sphinxcontrib-htmlhelp==2.0.4
-sphinxcontrib-jquery==4.1
-sphinxcontrib-jsmath==1.0.1
-sphinxcontrib-qthelp==1.0.6
-sphinxcontrib-serializinghtml==1.1.9
 sqlparse==0.4.4
 tomli==2.0.1
 tornado==6.4

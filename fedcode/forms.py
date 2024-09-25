@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 
 from django import forms
@@ -21,13 +21,14 @@ class CreateGitRepoForm(forms.ModelForm):
         model = Repository
         fields = ["url"]
         help_texts = {
-            'url': None,
+            "url": None,
         }
 
     def __init__(self, *args, **kwargs):
         super(CreateGitRepoForm, self).__init__(*args, **kwargs)
-        self.fields["url"].widget.attrs.update({"class": "input mb-5",
-                                                "placeholder": "https://github.com/nexB/vulnerablecode-data"})
+        self.fields["url"].widget.attrs.update(
+            {"class": "input mb-5", "placeholder": "https://github.com/nexB/vulnerablecode-data"}
+        )
 
 
 class CreateNoteForm(forms.ModelForm):
@@ -48,7 +49,7 @@ class ReviewStatusForm(forms.ModelForm):
         model = Review
         fields = ["status"]
         help_texts = {
-            'status': None,
+            "status": None,
         }
 
     def __init__(self, *args, **kwargs):

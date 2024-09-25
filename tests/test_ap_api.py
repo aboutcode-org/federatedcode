@@ -1,19 +1,19 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
-import datetime
 import json
-from datetime import datetime
 from datetime import timedelta
 
 import pytest
 from django.contrib.auth.models import User
 from django.urls import reverse
+from django.utils import timezone
+from fedcode_test_utils import mute_post_save_signal  # NOQA
 from oauth2_provider.models import AccessToken
 from oauth2_provider.models import Application
 from rest_framework.test import APIClient
@@ -21,21 +21,13 @@ from rest_framework.test import APIClient
 from fedcode.activitypub import AP_CONTEXT
 from fedcode.models import Follow
 from fedcode.models import Note
+from fedcode.models import Package
 from fedcode.models import Person
+from fedcode.models import Repository
 from fedcode.models import Review
+from fedcode.models import Service
 from fedcode.models import Vulnerability
-from fedcode.utils import generate_webfinger
 from federatedcode.settings import AP_CONTENT_TYPE
-
-from .test_models import follow
-from .test_models import mute_post_save_signal
-from .test_models import note
-from .test_models import package
-from .test_models import person
-from .test_models import repo
-from .test_models import review
-from .test_models import service
-from .test_models import vulnerability
 
 
 def create_token(user):
@@ -49,11 +41,66 @@ def create_token(user):
     token = AccessToken.objects.create(
         user=user,
         scope="read write",
-        expires=datetime.now() + timedelta(seconds=500),
+        expires=timezone.now() + timedelta(seconds=500),
         token="fake-access-key",
         application=app,
     )
     return f"Bearer {token}"
+
+
+@pytest.fixture
+def service(db):
+    user = User.objects.create(
+        username="vcio",
+        email="vcio@nexb.com",
+        password="complex-password",
+    )
+    return Service.objects.create(
+        user=user,
+    )
+
+
+@pytest.fixture
+def package(db, service):
+    return Package.objects.create(purl="pkg:maven/org.apache.logging", service=service)
+
+
+@pytest.fixture
+def person(db):
+    user1 = User.objects.create(username="ziad", email="ziad@nexb.com", password="complex-password")
+    return Person.objects.create(user=user1, summary="Hello World", public_key="PUBLIC_KEY")
+
+
+@pytest.fixture
+def repo(db, service, mute_post_save_signal):
+    """Simple Git Repository"""
+    return Repository.objects.create(
+        url="https://github.com/nexB/fake-repo",
+        path="./review/tests/test_data/test_git_repo_v1",
+        admin=service,
+    )
+
+
+@pytest.fixture
+def vulnerability(db, repo):
+    return Vulnerability.objects.create(id="VCID-1155-4sem-aaaq", repo=repo)
+
+
+@pytest.fixture
+def review(db, repo, person):
+    return Review.objects.create(
+        headline="Review title 1",
+        author=person,
+        repository=repo,
+        filepath="/apache/httpd/VCID-1a68-fd5t-aaam.yml",
+        data="text diff",
+        commit="49d8c5fd4bea9488186a832b13ebdc83484f1b6a",
+    )
+
+
+@pytest.fixture
+def note(db):
+    return Note.objects.create(acct="ziad@127.0.0.1:8000", content="Comment #1")
 
 
 @pytest.mark.django_db
@@ -77,7 +124,7 @@ def test_get_ap_profile_user(person, service):
         "summary": "Hello World",
         "following": "https://127.0.0.1:8000/api/v0/users/@ziad/following/",
         "id": "https://127.0.0.1:8000/api/v0/users/@ziad",
-        "image": "https://127.0.0.1:8000/media/favicon-16x16.png",
+        "image": "https://127.0.0.1:8000/favicon-16x16.png",
         "inbox": "https://127.0.0.1:8000/api/v0/users/@ziad/inbox",
         "outbox": "https://127.0.0.1:8000/api/v0/users/@ziad/outbox",
         "publicKey": {
@@ -273,7 +320,7 @@ def test_post_user_outbox(person):
     auth = create_token(person.user)
     client.credentials(HTTP_AUTHORIZATION=auth)
     path = reverse("user-outbox", args=[person.user.username])
-    response = client.post(
+    _response = client.post(
         path,
         {
             **AP_CONTEXT,

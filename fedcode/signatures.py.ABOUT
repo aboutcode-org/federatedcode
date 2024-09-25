@@ -1,3 +1,9 @@
+about_resource: signatures.py
+namespace: jointakahe
+name: takahe
+version: 2a50928f27701212e05862376e9ab478d1a01654
+package_url: pkg:maven/github/jointakahe/takahe@2a50928f27701212e05862376e9ab478d1a01654#/core/signatures.py
 download_url: https://github.com/jointakahe/takahe/blob/2a50928f27701212e05862376e9ab478d1a01654/core/signatures.py
-license_expression: BSD-3-Clause
+license_expression: bsd-new
 license_file: signatures.py.LICENSE
+copyright: Copyright (c) Andrew Godwin

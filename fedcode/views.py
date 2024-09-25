@@ -1,10 +1,10 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import difflib
 import json
@@ -12,11 +12,14 @@ import logging
 import os.path
 
 import requests
+from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.models import User
+from django.contrib.auth.models import auth
 from django.contrib.auth.views import LoginView
+from django.contrib.contenttypes.models import ContentType
 from django.core.paginator import Paginator
 from django.http import Http404
 from django.http import HttpResponse
@@ -45,9 +48,10 @@ from fedcode.forms import SearchPackageForm
 from fedcode.forms import SearchRepositoryForm
 from fedcode.forms import SearchReviewForm
 from fedcode.forms import SubscribePackageForm
-from federatedcode.settings import AP_CONTENT_TYPE, FEDERATED_CODE_GIT_PATH
-from federatedcode.settings import FEDERATED_CODE_DOMAIN
-from federatedcode.settings import env
+from federatedcode.settings import AP_CONTENT_TYPE
+from federatedcode.settings import FEDERATEDCODE_CLIENT_ID
+from federatedcode.settings import FEDERATEDCODE_CLIENT_SECRET
+from federatedcode.settings import FEDERATEDCODE_DOMAIN
 
 from .activitypub import AP_CONTEXT
 from .activitypub import create_activity_obj
@@ -56,29 +60,25 @@ from .forms import CreateGitRepoForm
 from .forms import CreateNoteForm
 from .forms import CreateReviewForm
 from .forms import ReviewStatusForm
-from .models import Follow, SyncRequest
+from .models import Follow
 from .models import Note
-from .models import Person
 from .models import Package
+from .models import Person
 from .models import Repository
 from .models import Reputation
 from .models import Review
+from .models import SyncRequest
 from .models import Vulnerability
-from .signatures import HttpSignature,FEDERATED_CODE_PUBLIC_KEY
+from .signatures import FEDERATEDCODE_PUBLIC_KEY
+from .signatures import HttpSignature
 from .utils import ap_collection
 from .utils import full_reverse
 from .utils import generate_webfinger
 from .utils import load_git_file
 from .utils import parse_webfinger
 from .utils import webfinger_actor
-from django.contrib.auth.models import auth
-from django.contrib import messages
-from django.contrib.contenttypes.models import ContentType
 
 logger = logging.getLogger(__name__)
-
-FEDERATED_CODE_CLIENT_ID = env.str("FEDERATED_CODE_CLIENT_ID")
-FEDERATED_CODE_CLIENT_SECRET = env.str("FEDERATED_CODE_CLIENT_SECRET")
 
 
 def logout(request):
@@ -96,7 +96,7 @@ class WebfingerView(View):
 
         obj, domain = parse_webfinger(resource)
 
-        if FEDERATED_CODE_DOMAIN != domain or not obj:
+        if FEDERATEDCODE_DOMAIN != domain or not obj:
             return HttpResponseBadRequest("Invalid domain")
 
         if obj.startswith("pkg:"):
@@ -112,7 +112,7 @@ class WebfingerView(View):
                 content_type="application/jrd+json",
                 context={
                     "resource": resource,
-                    "domain": FEDERATED_CODE_DOMAIN,
+                    "domain": FEDERATEDCODE_DOMAIN,
                     "purl_string": package.purl,
                 },
             )
@@ -129,7 +129,7 @@ class WebfingerView(View):
                 content_type="application/jrd+json",
                 context={
                     "resource": resource,
-                    "domain": FEDERATED_CODE_DOMAIN,
+                    "domain": FEDERATEDCODE_DOMAIN,
                     "username": user.username,
                 },
             )
@@ -190,7 +190,9 @@ class PackageView(DetailView, FormMixin):
         if self.request.user.is_authenticated:
             context["is_user_follow"] = (
                 True
-                if Follow.objects.filter(package=self.object, person__user=self.request.user).first()
+                if Follow.objects.filter(
+                    package=self.object, person__user=self.request.user
+                ).first()
                 else False
             )
 
@@ -387,23 +389,25 @@ def fetch_repository_file(request, repository_id):
 def obj_vote(request, obj_id, obj_type):
     if request.headers.get("x-requested-with") == "XMLHttpRequest" and request.method == "PUT":
         user_webfinger = generate_webfinger(request.user.username)
-        if obj_type == 'review':
+        if obj_type == "review":
             obj = get_object_or_404(Review, id=obj_id)
-        elif obj_type == 'note':
+        elif obj_type == "note":
             obj = get_object_or_404(Note, id=obj_id)
         else:
             return HttpResponseBadRequest("Invalid object type to vote")
 
         request_body = json.load(request)
         try:
-            content_type = ContentType.objects.get_for_model(Review if obj_type == 'review' else Note).id
+            content_type = ContentType.objects.get_for_model(
+                Review if obj_type == "review" else Note
+            ).id
             rep_obj = Reputation.objects.get(
                 voter=user_webfinger,
                 object_id=obj.id,
                 content_type=content_type,
             )
             if rep_obj:
-                vote_type = 'vote-down' if rep_obj.positive else 'vote-up'
+                vote_type = "vote-down" if rep_obj.positive else "vote-up"
                 rep_obj.delete()
                 return JsonResponse(
                     {
@@ -421,11 +425,13 @@ def obj_vote(request, obj_id, obj_type):
                     positive=True,
                 )
             elif vote_type == "vote-down":
-                rep_obj = Reputation.objects.create(
-                    voter=user_webfinger,
-                    content_object=obj,
-                    positive=False,
-                ),
+                rep_obj = (
+                    Reputation.objects.create(
+                        voter=user_webfinger,
+                        content_object=obj,
+                        positive=False,
+                    ),
+                )
 
             else:
                 return HttpResponseBadRequest("Invalid vote-type request")
@@ -451,7 +457,9 @@ class FollowPackageView(View):
 
             elif "unfollow" in request.POST:
                 try:
-                    follow_obj = Follow.objects.get(person=self.request.user.person, package=package)
+                    follow_obj = Follow.objects.get(
+                        person=self.request.user.person, package=package
+                    )
                     follow_obj.delete()
                 except Follow.DoesNotExist:
                     return HttpResponseBadRequest(
@@ -480,7 +488,7 @@ class FollowPackageView(View):
                 )
 
                 activity = create_activity_obj(payload)
-                activity_response = activity.handler()
+                _activity_response = activity.handler()
                 return JsonResponse(
                     {
                         "redirect_url": f"https://{domain}/authorize_interaction?uri={remote_actor_url}"
@@ -716,7 +724,7 @@ class PackageInbox(View):
         You can POST to someone's inbox to send them a message
         (server-to-server / federation only... this is federation!)
         """
-        HttpSignature.verify_request(request, FEDERATED_CODE_PUBLIC_KEY)
+        HttpSignature.verify_request(request, FEDERATEDCODE_PUBLIC_KEY)
         activity = create_activity_obj(request.body)
         activity_response = activity.handler()
         return activity_response
@@ -743,9 +751,9 @@ class PackageOutbox(View):
             return HttpResponseBadRequest("Invalid purl")
 
         if (
-                request.user.is_authenticated
-                and hasattr(request.user, "service")
-                and actor.service == request.user.service
+            request.user.is_authenticated
+            and hasattr(request.user, "service")
+            and actor.service == request.user.service
         ):
             activity = create_activity_obj(request.body)
             return activity.handler()
@@ -763,9 +771,11 @@ def redirect_repository(request, repository_id):
 def redirect_vulnerability(request, vulnerability_id):
     try:
         vul = Vulnerability.objects.get(id=vulnerability_id)
-        vul_filepath = os.path.join(vul.repo.path,
-                                    f"./aboutcode-vulnerabilities-{vulnerability_id[5:7]}/{vulnerability_id[10:12]}"
-                                    f"/{vulnerability_id}/{vulnerability_id}.yml")
+        vul_filepath = os.path.join(
+            vul.repo.path,
+            f"./aboutcode-vulnerabilities-{vulnerability_id[5:7]}/{vulnerability_id[10:12]}"
+            f"/{vulnerability_id}/{vulnerability_id}.yml",
+        )
         with open(vul_filepath) as f:
             return HttpResponse(json.dumps(f.read()))
 
@@ -802,8 +812,8 @@ def token(request):
             "grant_type": "password",
             "username": payload["username"],
             "password": payload["password"],
-            "client_id": FEDERATED_CODE_CLIENT_ID,
-            "client_secret": FEDERATED_CODE_CLIENT_SECRET,
+            "client_id": FEDERATEDCODE_CLIENT_ID,
+            "client_secret": FEDERATEDCODE_CLIENT_SECRET,
         },
     )
     return JsonResponse(json.loads(r.content), status=r.status_code, content_type=AP_CONTENT_TYPE)
@@ -819,8 +829,8 @@ def refresh_token(request):
         data={
             "grant_type": "refresh_token",
             "refresh_token": payload["refresh_token"],
-            "client_id": FEDERATED_CODE_CLIENT_ID,
-            "client_secret": FEDERATED_CODE_CLIENT_SECRET,
+            "client_id": FEDERATEDCODE_CLIENT_ID,
+            "client_secret": FEDERATEDCODE_CLIENT_SECRET,
         },
     )
     return JsonResponse(json.loads(r.text), status=r.status_code, content_type=AP_CONTENT_TYPE)
@@ -835,8 +845,8 @@ def revoke_token(request):
         headers={"content-type": "application/x-www-form-urlencoded"},
         data={
             "token": payload["token"],
-            "client_id": FEDERATED_CODE_CLIENT_ID,
-            "client_secret": FEDERATED_CODE_CLIENT_SECRET,
+            "client_id": FEDERATEDCODE_CLIENT_ID,
+            "client_secret": FEDERATEDCODE_CLIENT_SECRET,
         },
     )
     return JsonResponse(json.loads(r.content), status=r.status_code, content_type=AP_CONTENT_TYPE)

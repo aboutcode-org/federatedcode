@@ -1,21 +1,43 @@
 #
 # Copyright (c) nexB Inc. and others. All rights reserved.
-# VulnerableCode is a trademark of nexB Inc.
+# FederatedCode is a trademark of nexB Inc.
 # SPDX-License-Identifier: Apache-2.0
 # See http://www.apache.org/licenses/LICENSE-2.0 for the license text.
-# See https://github.com/nexB/vulnerablecode for support or download.
-# See https://aboutcode.org for more information about nexB OSS projects.
+# See https://github.com/nexB/federatedcode for support or download.
+# See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
 import pytest
+from django.contrib.auth.models import User
+from fedcode_test_utils import mute_post_save_signal  # NOQA
 
 from fedcode.importer import Importer
 from fedcode.models import Note
 from fedcode.models import Package
+from fedcode.models import Repository
+from fedcode.models import Service
 from fedcode.models import Vulnerability
 
-from .test_models import mute_post_save_signal
-from .test_models import repo
-from .test_models import service
+
+@pytest.fixture
+def service(db):
+    user = User.objects.create(
+        username="vcio",
+        email="vcio@nexb.com",
+        password="complex-password",
+    )
+    return Service.objects.create(
+        user=user,
+    )
+
+
+@pytest.fixture
+def repo(db, service, mute_post_save_signal):
+    """Simple Git Repository"""
+    return Repository.objects.create(
+        url="https://github.com/nexB/fake-repo",
+        path="./review/tests/test_data/test_git_repo_v1",
+        admin=service,
+    )
 
 
 @pytest.mark.skip(reason="Need a real git repo to test the importer")
