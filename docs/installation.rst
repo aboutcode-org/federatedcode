@@ -104,13 +104,14 @@ and **re build the base container image**::
 
 .. warning::
     The container image has been updated to run as a non-root user.
-    If you encounter "permissions" issues while running the FederatedCode container images
-    following the ``docker compose build``, you will need to update the the permissions
-    of the ``/var/federatedcode/`` directory of the Docker volumes using::
+    If you encounter "permissions" issues while running the FederatedCode container images following
+    the ``docker compose build``, you will need to update the the permissions of the
+    ``/var/federatedcode/`` directory of the Docker volumes using::
 
         docker compose run -u 0:0 web chown -R app:app /var/federatedcode/
 
-    See also a related issue in ScanCode.io https://github.com/aboutcode-org/scancode.io/issues/399
+    See also a related issue in ScanCode.io to run as non-root user
+    https://github.com/aboutcode-org/scancode.io/issues/399
 
 .. note::
     You need to rebuild the image whenever FederatedCode's source code has been
