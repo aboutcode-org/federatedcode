@@ -79,18 +79,15 @@ master_doc = "index"
 default_dark_mode = False
 
 # Sphinx confuses JSON schema `ref` with Sphinx's doc `:ref:`
-suppress_warnings = ['ref.ref']
+suppress_warnings = ["ref.ref"]
 
 linkcheck_ignore = [
-    'http://localhost/',
-    'http://localhost:8001/',
-    'https://my-example.com/actor#main-key',
-
-    'https://federatedcode.readthedocs.io/en/latest',
-
+    "http://localhost/",
+    "http://localhost:8001/",
+    "https://my-example.com/actor#main-key",
+    "https://federatedcode.readthedocs.io/en/latest",
     # Linkcheck can't handle GitHub README anchors.
-    'https://github.com/aboutcode-org/federatedcode#readme',
-
+    "https://github.com/aboutcode-org/federatedcode#readme",
     # 403 Client Error: Forbidden for https://www.softwaretestinghelp.com
-    'https://www.softwaretestinghelp.com/how-to-write-good-bug-report/',
+    "https://www.softwaretestinghelp.com/how-to-write-good-bug-report/",
 ]
