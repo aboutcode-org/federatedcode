@@ -30,7 +30,7 @@ sharing of curated metadata along with air-gapped, local usage to preserve priva
 confidentiality.
 
 Because FederatedCode is decentralized and federated, it promotes sharing without having a single
-centralized ownehsip and point of control.
+centralized ownership and point of control.
 
 FederatedCode's distributed metadata collection process includes metadata crawling, curation and
 sharing, and its application to open source software package origin, license and vulnerabilities.
@@ -45,8 +45,8 @@ What is FederatedCode?
 
 - A system to store versioned metadata as structure text (JSON, YAML) in multiple Git repositories
   structured to enable direct content retrieval using a Package URL (PURL),
-- A series of utilities to synchronize AboutCode dabatases with these versioned metadata, and
+- A series of utilities to synchronize AboutCode databases with these versioned metadata, and
 - A system to publish package-centric events such as the release of a new package version, the
-  publication of a vulnerability, the availability of detailes scans, analysis and SBOMs using
+  publication of a vulnerability, the availability of detail scans, analysis and SBOMs using
   publish/subscribe mechanism over ActivityPub. This further enables distributed discussions and
   curation of the data, in the open.
