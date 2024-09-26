@@ -60,7 +60,7 @@ black:
 
 doc8:
 	@echo "-> Run doc8 validation"
-	@${ACTIVATE} doc8 --max-line-length 100 --ignore-path docs/build/ --quiet docs/
+	@${ACTIVATE} doc8 --max-line-length 100 --ignore-path docs/_build/ --quiet docs/
 
 valid: isort black doc8
 
@@ -95,8 +95,8 @@ test:
 	@${ACTIVATE} pytest -vvs
 
 docs:
-	rm -rf docs/build/
-	@${ACTIVATE} sphinx-build docs/ docs/build/
+	rm -rf docs/_build/
+	@${ACTIVATE} sphinx-build docs/source docs/_build/
 
 postgresdb:
 	@echo "-> Configure PostgreSQL database"
