@@ -29,10 +29,11 @@ The configuration of FederatedCode depends on environment variables:
 
 - FEDERATEDCODE_WORKSPACE_LOCATION: Directory location of the workspace where we store local Git repos and
   content. Default to var/ in current directory in development
-- These are generated id and secrets stored in a .env file when running `make envfile`
-  - SECRET_KEY: Django's secret key
-  - FEDERATEDCODE_CLIENT_ID: Client UUID
-  - FEDERATEDCODE_CLIENT_SECRET: Own secret key
+- These are generated id and secrets stored in a .env file when running `make envfile`:
+
+   - SECRET_KEY: Django's secret key
+   - FEDERATEDCODE_CLIENT_ID: Client UUID
+   - FEDERATEDCODE_CLIENT_SECRET: Own secret key
 
 
 Acknowledgements, Funding, Support and Sponsoring
