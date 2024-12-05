@@ -9,10 +9,28 @@ security information.
 Quick Installation
 --------------------
 
+Run with Docker
+~~~~~~~~~~~~~~~
+
+
+Clone FederatedCode::
+
+    git clone https://github.com/aboutcode-org/federatedcode.git
+    cd federatedcode
+
+Build and run::
+
+    docker compose build
+    docker compose up
+
+
+Local development installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 On a Debian system, use this::
 
     sudo apt-get install python3-venv python3-dev postgresql libpq-dev build-essential
-    git clone https://github.com/nexB/federatedcode.git
+    git clone https://github.com/aboutcode-org/federatedcode.git
     cd federatedcode
     make dev envfile postgresdb
     make test
@@ -164,9 +182,3 @@ funding is made available by the Swiss State Secretariat for Education, Research
     :target: https://nlnet.nl/discovery/
     :height: 40
     :alt: NGI Discovery logo
-
-
-
-
-
-

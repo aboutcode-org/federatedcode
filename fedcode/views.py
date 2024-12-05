@@ -42,41 +42,40 @@ from django.views.generic import TemplateView
 from django.views.generic.edit import FormMixin
 from django.views.generic.edit import UpdateView
 
+from fedcode.activitypub import AP_CONTEXT
+from fedcode.activitypub import create_activity_obj
+from fedcode.activitypub import has_valid_header
+from fedcode.forms import CreateGitRepoForm
+from fedcode.forms import CreateNoteForm
+from fedcode.forms import CreateReviewForm
 from fedcode.forms import FetchForm
 from fedcode.forms import PersonSignUpForm
+from fedcode.forms import ReviewStatusForm
 from fedcode.forms import SearchPackageForm
 from fedcode.forms import SearchRepositoryForm
 from fedcode.forms import SearchReviewForm
 from fedcode.forms import SubscribePackageForm
+from fedcode.models import Follow
+from fedcode.models import Note
+from fedcode.models import Package
+from fedcode.models import Person
+from fedcode.models import Repository
+from fedcode.models import Reputation
+from fedcode.models import Review
+from fedcode.models import SyncRequest
+from fedcode.models import Vulnerability
+from fedcode.signatures import FEDERATEDCODE_PUBLIC_KEY
+from fedcode.signatures import HttpSignature
+from fedcode.utils import ap_collection
+from fedcode.utils import full_reverse
+from fedcode.utils import generate_webfinger
+from fedcode.utils import load_git_file
+from fedcode.utils import parse_webfinger
+from fedcode.utils import webfinger_actor
 from federatedcode.settings import AP_CONTENT_TYPE
 from federatedcode.settings import FEDERATEDCODE_CLIENT_ID
 from federatedcode.settings import FEDERATEDCODE_CLIENT_SECRET
 from federatedcode.settings import FEDERATEDCODE_DOMAIN
-
-from .activitypub import AP_CONTEXT
-from .activitypub import create_activity_obj
-from .activitypub import has_valid_header
-from .forms import CreateGitRepoForm
-from .forms import CreateNoteForm
-from .forms import CreateReviewForm
-from .forms import ReviewStatusForm
-from .models import Follow
-from .models import Note
-from .models import Package
-from .models import Person
-from .models import Repository
-from .models import Reputation
-from .models import Review
-from .models import SyncRequest
-from .models import Vulnerability
-from .signatures import FEDERATEDCODE_PUBLIC_KEY
-from .signatures import HttpSignature
-from .utils import ap_collection
-from .utils import full_reverse
-from .utils import generate_webfinger
-from .utils import load_git_file
-from .utils import parse_webfinger
-from .utils import webfinger_actor
 
 logger = logging.getLogger(__name__)
 

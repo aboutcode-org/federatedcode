@@ -6,7 +6,7 @@
 # See https://github.com/nexB/federatedcode for support or download.
 # See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
-import os
+
 import sys
 from pathlib import Path
 
@@ -30,15 +30,13 @@ environ.Env.read_env(ENV_FILE)
 SECRET_KEY = env.str("SECRET_KEY")
 
 ALLOWED_HOSTS = env.list(
-    "ALLOWED_HOSTS",
-    default=[".localhost", "127.0.0.1", "[::1]", "host.docker.internal"],
+    "ALLOWED_HOSTS", default=[".localhost", "127.0.0.1", "[::1]", "host.docker.internal"]
 )
 
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 
 # SECURITY WARNING: don't run with debug turned on in production
 DEBUG = env.bool("FEDERATEDCODE_DEBUG", default=False)
-
 
 ############################################
 # Federation settings
@@ -201,11 +199,6 @@ LOGGING = {
         },
     },
     "loggers": {
-        "scanpipe": {
-            "handlers": ["null"] if IS_TESTS else ["console"],
-            "level": FEDERATEDCODE_LOG_LEVEL,
-            "propagate": False,
-        },
         "django": {
             "handlers": ["null"] if IS_TESTS else ["console"],
             "propagate": False,
@@ -213,6 +206,11 @@ LOGGING = {
         # Set FEDERATEDCODE_LOG_LEVEL=DEBUG to display all SQL queries in the console.
         "django.db.backends": {
             "level": FEDERATEDCODE_LOG_LEVEL,
+        },
+        "fedcode.pipelines": {
+            "handlers": ["null"] if IS_TESTS else ["console"],
+            "level": FEDERATEDCODE_LOG_LEVEL,
+            "propagate": False,
         },
     },
 }

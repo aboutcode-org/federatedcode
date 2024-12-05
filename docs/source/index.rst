@@ -29,6 +29,7 @@ you will find information on:
     command-line-interface
     rest-api
     application-settings
+    run-application
 
 Indices and tables
 ==================

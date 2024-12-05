@@ -22,6 +22,6 @@ def get_pkg_image(purl_webfinger):
     try:
         purl, _ = purl_webfinger.split("@")
         package_type = PackageURL.from_string(purl).type
-        return "/" + STATIC_URL + "pictogram-gh-pages/" + package_type + "/" + package_type + ".png"
+        return STATIC_URL + "pictogram-gh-pages/" + package_type + "/" + package_type + ".png"
     except ValueError:
         return ""

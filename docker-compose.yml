@@ -1,43 +1,45 @@
 version: '3'
 
 services:
-  federatedcode_db:
-    image: postgres:16
+  db:
+    image: postgres:13
     env_file:
       - docker.env
     volumes:
-      - federatedcode_db_data:/var/lib/postgresql/data/
+      - db_data:/var/lib/postgresql/data/
 
-  federatedcode:
+  web:
     build: .
-    command: /bin/sh -c "
-      apt-get update && apt-get install -y gunicorn &&   
-      python manage.py collectstatic --no-input --verbosity 0 --clear &&
-      python manage.py migrate &&
-      gunicorn federatedcode.wsgi:application -u nobody -g nogroup --bind :8000 --timeout 600 --workers 8"
+    command: wait-for-it --strict --timeout=60 db:5432 -- sh -c "
+        ./manage.py migrate &&
+        ./manage.py collectstatic --no-input --verbosity 0 --clear &&
+        gunicorn federatedcode.wsgi:application --bind :8000 --timeout 600 --workers 8"
     env_file:
       - docker.env
     expose:
       - 8000
-    ports:
-      - "8000:8000"
     volumes:
-      - static:/var/federatedcode/static/
       - /etc/federatedcode/:/etc/federatedcode/
+      - static:/var/federatedcode/static/
+      - workspace:/var/federatedcode/workspace/
     depends_on:
-      - federatedcode_db
+      - db
 
-  federatedcode_nginx:
+  nginx:
     image: nginx
+    ports:
+      - 80:80
+      - 443:443
     env_file:
       - docker.env
     volumes:
-      - ./etc/nginx/conf.d/:/etc/nginx/conf.d
+      - ./etc/nginx/conf.d/:/etc/nginx/conf.d/
+      - static:/var/federatedcode/static/
+      - /var/www/html:/var/www/html
     depends_on:
-      - federatedcode
+      - web
 
 volumes:
-  federatedcode_db_data:
-  federatedcode_static:
-  federatedcode:
-
+  db_data:
+  static:
+  workspace:

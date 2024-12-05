@@ -79,7 +79,7 @@ URL_MAPPER = {
     "purl-ap-profile": "purl_string",
     "review-page": "review_id",
     "repository-page": "repository_id",
-    "note-page": "note_id",
+    "note-page": "uuid",
     "vulnerability-page": "vulnerability_id",
 }
 

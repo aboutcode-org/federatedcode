@@ -16,7 +16,9 @@ import sys
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "federatedcode.settings")
 os.environ.setdefault("SECRET_KEY", "dummy secret key for autodoc rtd documentation")
 os.environ.setdefault("FEDERATEDCODE_CLIENT_ID", "dummy secret key for autodoc rtd documentation")
-os.environ.setdefault("FEDERATEDCODE_CLIENT_SECRET", "dummy secret key for autodoc rtd documentation")
+os.environ.setdefault(
+    "FEDERATEDCODE_CLIENT_SECRET", "dummy secret key for autodoc rtd documentation"
+)
 
 sys.path.insert(0, os.path.abspath("../../."))
 

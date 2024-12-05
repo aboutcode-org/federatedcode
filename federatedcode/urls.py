@@ -82,7 +82,7 @@ urlpatterns = [
         redirect_vulnerability,
         name="vulnerability-page",
     ),
-    path("notes/<uuid:note_id>", NoteView.as_view(), name="note-page"),
+    path("notes/<uuid:uuid>", NoteView.as_view(), name="note-page"),
     path("api/v0/users/@<str:username>", UserProfile.as_view(), name="user-ap-profile"),
     path(
         "api/v0/purls/@<path:purl_string>/",
