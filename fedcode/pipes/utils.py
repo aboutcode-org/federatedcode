@@ -15,6 +15,7 @@ from packageurl import PackageURL
 from fedcode.activitypub import Activity
 from fedcode.activitypub import CreateActivity
 from fedcode.activitypub import DeleteActivity
+from fedcode.activitypub import UpdateActivity
 from fedcode.models import Note
 
 
@@ -27,6 +28,23 @@ def create_note(pkg, note_dict):
     Activity.federate(
         targets=pkg.followers_inboxes,
         body=json.dumps(create_activity.to_ap()),
+        key_id=pkg.key_id,
+    )
+
+
+def update_note(pkg, old_note_dict, new_note_dict):
+    if old_note_dict == new_note_dict:
+        return
+
+    note = Note.objects.get(acct=pkg.acct, content=saneyaml.dump(old_note_dict))
+
+    note.content = saneyaml.dump(new_note_dict)
+    note.save()
+
+    update_activity = UpdateActivity(actor=pkg.to_ap, object=note.to_ap)
+    Activity.federate(
+        targets=pkg.followers_inboxes,
+        body=update_activity.to_ap(),
         key_id=pkg.key_id,
     )
 
