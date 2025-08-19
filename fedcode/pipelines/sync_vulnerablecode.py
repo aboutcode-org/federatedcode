@@ -16,9 +16,6 @@ from django.db import transaction
 
 from aboutcode.hashid import get_core_purl
 from aboutcode.pipeline import LoopProgress
-from fedcode.activitypub import Activity
-from fedcode.activitypub import UpdateActivity
-from fedcode.models import Note
 from fedcode.models import Package
 from fedcode.models import Repository
 from fedcode.models import Vulnerability
@@ -97,12 +94,16 @@ def sync_vulnerabilities(repository, logger):
                 diff.change_type, repository.admin, yaml_data_a_blob, yaml_data_b_blob, logger
             )
 
-        if a_name == "purls.yml" or b_name == "purls.yml":
+        elif a_name == "purls.yml" or b_name == "purls.yml":
             pkg_handler(
-                diff.change_type, repository.admin, yaml_data_a_blob, yaml_data_b_blob, logger
+                diff.change_type,
+                repository.admin,
+                yaml_data_a_blob,
+                yaml_data_b_blob,
+                logger,
             )
 
-        if a_name.startswith("VCID") or b_name.startswith("VCID"):
+        elif a_name.startswith("VCID") or b_name.startswith("VCID"):
             vul_handler(diff.change_type, repository, yaml_data_a_blob, yaml_data_b_blob, logger)
 
     repository.last_imported_commit = latest_commit_hash
@@ -112,116 +113,130 @@ def sync_vulnerabilities(repository, logger):
 
 def vul_handler(change_type, repo_obj, yaml_data_a_blob, yaml_data_b_blob, logger):
     """
-    VCID-XXXX-XXXX-XXXX.yml
+    Handle changes in VCID-XXXX-XXXX-XXXX.yml
     """
     vulnerability_a_id = yaml_data_a_blob.get("vulnerability_id") if yaml_data_a_blob else None
     vulnerability_b_id = yaml_data_b_blob.get("vulnerability_id") if yaml_data_b_blob else None
 
-    if change_type == "A":  # A for added paths
+    if change_type == "A":  # Added
         Vulnerability.objects.get_or_create(
             id=vulnerability_b_id,
             repo=repo_obj,
         )
-    elif change_type in [
-        "M",
-        "R",
-    ]:  # R for renamed paths , M for paths with modified data
-        with transaction.atomic():
-            Vulnerability.objects.get(id=vulnerability_a_id, repo=repo_obj).delete()
-            Vulnerability.objects.create(id=vulnerability_b_id, repo=repo_obj)
 
-    elif change_type == "D":  # D for deleted paths
-        Vulnerability.objects.get(
-            id=yaml_data_b_blob.get("vulnerability_id"),
-            repo=repo_obj,
-        ).delete()
+    elif change_type in ["M", "R"]:  # Modified or Renamed
+        with transaction.atomic():
+            if vulnerability_a_id and vulnerability_a_id != vulnerability_b_id:
+                # renamed or id changed
+                Vulnerability.objects.filter(id=vulnerability_a_id, repo=repo_obj).delete()
+
+            # update_or_create to avoid losing relations unnecessarily
+            Vulnerability.objects.update_or_create(
+                id=vulnerability_b_id,
+                repo=repo_obj,
+                defaults={},  # add fields parsed from yaml_data_b_blob here
+            )
+
+    elif change_type == "D":  # Deleted
+        if vulnerability_a_id:
+            Vulnerability.objects.filter(id=vulnerability_a_id, repo=repo_obj).delete()
+
     else:
         logger(f"Invalid Vulnerability File", level=logging.ERROR)
 
 
 def pkg_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob, logger):
     """
-    purls.yml
+    Handle changes in purls.yml
     """
 
-    if change_type == "A":
-        for purl in yaml_data_b_blob:
+    if change_type == "A":  # Added packages
+        for purl in yaml_data_b_blob or []:
             core_purl = get_core_purl(purl)
-            pkg, _ = Package.objects.get_or_create(purl=core_purl, service=default_service)
+            Package.objects.get_or_create(purl=core_purl, service=default_service)
 
-    # elif change_type == "M":
-    #     pkg = Package.objects.get(purl=package_a, service=default_service)
-    #     pkg.purl = package_b
-    #     pkg.save()
-    #
-    #     for version_a, version_b in zip_longest(
-    #         yaml_data_a_blob, yaml_data_b_blob
-    #     ):
-    #         if version_b and not version_a:
-    #             utils.create_note(pkg, version_b)
-    #
-    #         if version_a and not version_b:
-    #             utils.delete_note(pkg, version_a)
-    #
-    #         if version_a and version_b:
-    #             note = Note.objects.get(acct=pkg.acct, content=saneyaml.dump(version_a))
-    #             if note.content == saneyaml.dump(version_b):
-    #                 continue
-    #
-    #             note.content = saneyaml.dump(version_b)
-    #             note.save()
-    #
-    #             update_activity = UpdateActivity(actor=pkg.to_ap, object=note.to_ap)
-    #             Activity.federate(
-    #                 targets=pkg.followers_inboxes,
-    #                 body=update_activity.to_ap(),
-    #                 key_id=pkg.key_id,
-    #             )
-    #
-    # elif change_type == "D":
-    #     pkg = Package.objects.get(purl=package_a, service=default_service)
-    #     for version in yaml_data_a_blob:
-    #         utils.delete_note(pkg, version)
-    #     pkg.delete()
+    elif change_type == "M":  # Modified packages
+        for package_a, package_b in zip_longest(yaml_data_a_blob or [], yaml_data_b_blob or []):
+            if not package_a or not package_b:
+                continue  # skip if one side missing
+
+            core_purl_a = get_core_purl(package_a)
+            core_purl_b = get_core_purl(package_b)
+
+            try:
+                pkg = Package.objects.get(purl=core_purl_a, service=default_service)
+            except Package.DoesNotExist:
+                logger(f"Package not found for {core_purl_a}", level=logging.ERROR)
+                continue
+
+            # Update package purl if changed
+            if pkg.purl != core_purl_b:
+                pkg.purl = core_purl_b
+                pkg.save()
+
+    elif change_type == "D":  # Deleted packages
+        for purl in yaml_data_a_blob or []:
+            if not purl:
+                logger("Invalid PURL in deleted entry", level=logging.ERROR)
+                continue
+            core_purl = get_core_purl(purl)
+            try:
+                pkg = Package.objects.get(purl=core_purl, service=default_service)
+                pkg.delete()
+            except Package.DoesNotExist:
+                logger(f"Package not found for deletion: {core_purl}", level=logging.WARNING)
+
+    else:
+        logger(f"Unknown change_type: {change_type}", level=logging.ERROR)
 
 
 def note_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blob, logger):
     """
-    vulnerabilities.yml
+    Handle notes from vulnerabilities.yml changes.
+    Uses zip_longest so both old (A) and new (B) entries are processed together.
     """
-    if change_type == "A":
-        for pkg_status in yaml_data_b_blob:
-            purl = pkg_status.get("purl")
-            if not purl:
-                logger(f"Invalid Vulnerability File", level=logging.ERROR)
-                return
-            core_purl = get_core_purl(purl)
-            pkg_b, _ = Package.objects.get_or_create(purl=core_purl, service=default_service)
-            temp = saneyaml.dump(pkg_status)
-            utils.create_note(pkg_b, temp)
 
-    # elif change_type == "M":
-    #     for pkg_status_a, pkg_status_b in zip_longest(
-    #         yaml_data_a_blob, yaml_data_b_blob
-    #     ):
-    #         if pkg_status_a and not pkg_status_b:
-    #             utils.create_note(pkg_a, pkg_status_b)
-    #
-    #         if pkg_status_a and not pkg_status_b:
-    #             utils.delete_note(pkg_a, pkg_status_b)
-    #
-    #         if pkg_status_a and pkg_status_b:
-    #             utils.update_note(pkg_a, saneyaml.dump(pkg_status_a), saneyaml.dump(pkg_status_b))
-    #
-    # elif change_type == "D":
-    #     for pkg_status in yaml_data_a_blob:
-    #         purl = pkg_status.get("purl")
-    #         if not purl:
-    #             logger(f"Invalid Vulnerability File", level=logging.ERROR)
-    #             return
-    #         core_purl = get_core_purl(purl)
-    #         pkg_a, _ = Package.objects.get_or_create(purl=core_purl, service=default_service)
-    #         temp = saneyaml.dump(pkg_status)
-    #         utils.delete_note(pkg_a, temp)
-    else:
-        logger(f"Invalid Vulnerability File", level=logging.ERROR)
+    for pkg_status_a, pkg_status_b in zip_longest(yaml_data_a_blob or [], yaml_data_b_blob or []):
+        pkg_a = pkg_b = None
+
+        # Resolve old package
+        if pkg_status_a:
+            purl_a = pkg_status_a.get("purl")
+            if not purl_a:
+                logger("Invalid Vulnerability File: missing purl in old entry", level=logging.ERROR)
+            else:
+                core_purl_a = get_core_purl(purl_a)
+                pkg_a, _ = Package.objects.get_or_create(purl=core_purl_a, service=default_service)
+
+        # Resolve new package
+        if pkg_status_b:
+            purl_b = pkg_status_b.get("purl")
+            if not purl_b:
+                logger("Invalid Vulnerability File: missing purl in new entry", level=logging.ERROR)
+            else:
+                core_purl_b = get_core_purl(purl_b)
+                pkg_b, _ = Package.objects.get_or_create(purl=core_purl_b, service=default_service)
+
+        if change_type == "A":  # Added entries
+            if pkg_status_b and pkg_b:
+                utils.create_note(pkg_b, saneyaml.dump(pkg_status_b))
+
+        elif change_type == "M":  # Modified entries
+            # Deleted entry
+            if pkg_status_a and not pkg_status_b and pkg_a:
+                utils.delete_note(pkg_a, saneyaml.dump(pkg_status_a))
+
+            # Added entry
+            elif pkg_status_b and not pkg_status_a and pkg_b:
+                utils.create_note(pkg_b, saneyaml.dump(pkg_status_b))
+
+            # Updated entry
+            elif pkg_status_a and pkg_status_b and pkg_b:
+                utils.update_note(pkg_b, saneyaml.dump(pkg_status_a), saneyaml.dump(pkg_status_b))
+
+        elif change_type == "D":  # Deleted entries
+            if pkg_status_a and pkg_a:
+                utils.delete_note(pkg_a, saneyaml.dump(pkg_status_a))
+
+        else:
+            logger(f"Unknown change_type: {change_type}", level=logging.ERROR)
