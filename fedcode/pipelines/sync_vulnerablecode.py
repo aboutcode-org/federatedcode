@@ -6,20 +6,29 @@
 # See https://github.com/nexB/federatedcode for support or download.
 # See https://aboutcode.org for more information about AboutCode.org OSS projects.
 #
-
+import json
 import logging
 from itertools import zip_longest
 from pathlib import Path
 
 import saneyaml
+from django.db.models import Case
+from django.db.models import Q
+from django.db.models import TextField
+from django.db.models import Value
+from django.db.models import When
 
 from aboutcode.hashid import get_core_purl
 from aboutcode.pipeline import LoopProgress
+from fedcode.activitypub import Activity
+from fedcode.activitypub import CreateActivity
+from fedcode.activitypub import DeleteActivity
+from fedcode.activitypub import UpdateActivity
+from fedcode.models import Note
 from fedcode.models import Package
 from fedcode.models import Repository
 from fedcode.models import Vulnerability
 from fedcode.pipelines import FederatedCodePipeline
-from fedcode.pipes import utils
 
 
 class SyncVulnerableCode(FederatedCodePipeline):
@@ -98,7 +107,6 @@ def sync_vulnerabilities(repository, logger):
         a_name = Path(diff.a_path).name
         b_name = Path(diff.b_path).name
 
-        # FIXME use bulk updates
         if a_name == "vulnerabilities.yml" or b_name == "vulnerabilities.yml":
             note_handler(
                 diff.change_type, repository.admin, yaml_data_a_blob, yaml_data_b_blob, logger
@@ -120,7 +128,6 @@ def sync_vulnerabilities(repository, logger):
                     f"Processed {purl_files_processed} purls.yml files, flushing bulk changes..."
                 )
                 flush_pkg_changes(pkg_changes, logger)
-                # reset after flush
                 pkg_changes = {"create": [], "update": [], "delete": set()}
 
         elif a_name.startswith("VCID") or b_name.startswith("VCID"):
@@ -137,7 +144,6 @@ def sync_vulnerabilities(repository, logger):
             if vul_files_processed % 10000 == 0:
                 logger(f"Processed {vul_files_processed} VCID files, flushing bulk changes...")
                 flush_vul_changes(vul_changes, logger)
-                # reset after flush
                 vul_changes = {"create": [], "update": [], "delete": set()}
 
     flush_pkg_changes(pkg_changes, logger)
@@ -253,45 +259,259 @@ def note_handler(change_type, default_service, yaml_data_a_blob, yaml_data_b_blo
     Handle notes from vulnerabilities.yml changes.
     Uses zip_longest so both old (A) and new (B) entries are processed together.
     """
+    notes_to_create = []
+    notes_to_update = []
+    notes_to_delete = []
+
+    purls_to_fetch = set()
+    for pkg_status_a, pkg_status_b in zip_longest(yaml_data_a_blob or [], yaml_data_b_blob or []):
+        if pkg_status_a:
+            purl_a = pkg_status_a.get("purl")
+            if purl_a:
+                purls_to_fetch.add(get_core_purl(purl_a))
+            else:
+                logger("Invalid Vulnerability File: missing purl in old entry", level=logging.ERROR)
+
+        if pkg_status_b:
+            purl_b = pkg_status_b.get("purl")
+            if purl_b:
+                purls_to_fetch.add(get_core_purl(purl_b))
+            else:
+                logger("Invalid Vulnerability File: missing purl in new entry", level=logging.ERROR)
+
+    packages_map = {}
+    if purls_to_fetch:
+        existing_packages = Package.objects.filter(purl__in=purls_to_fetch, service=default_service)
+        packages_map = {pkg.purl: pkg for pkg in existing_packages}
+
+        missing_purls = purls_to_fetch - set(packages_map.keys())
+        if missing_purls:
+            new_packages = [Package(purl=purl, service=default_service) for purl in missing_purls]
+            Package.objects.bulk_create(new_packages, ignore_conflicts=True)
+            refreshed = Package.objects.filter(purl__in=missing_purls, service=default_service)
+            packages_map.update({pkg.purl: pkg for pkg in refreshed})
 
     for pkg_status_a, pkg_status_b in zip_longest(yaml_data_a_blob or [], yaml_data_b_blob or []):
         pkg_a = pkg_b = None
 
-        # Resolve old package
-        if pkg_status_a:
-            purl_a = pkg_status_a.get("purl")
-            if not purl_a:
-                logger("Invalid Vulnerability File: missing purl in old entry", level=logging.ERROR)
-            else:
-                core_purl_a = get_core_purl(purl_a)
-                pkg_a, _ = Package.objects.get_or_create(purl=core_purl_a, service=default_service)
+        if pkg_status_a and pkg_status_a.get("purl"):
+            core_purl_a = get_core_purl(pkg_status_a["purl"])
+            pkg_a = packages_map.get(str(core_purl_a))
 
-        # Resolve new package
-        if pkg_status_b:
-            purl_b = pkg_status_b.get("purl")
-            if not purl_b:
-                logger("Invalid Vulnerability File: missing purl in new entry", level=logging.ERROR)
-            else:
-                core_purl_b = get_core_purl(purl_b)
-                pkg_b, _ = Package.objects.get_or_create(purl=core_purl_b, service=default_service)
+        if pkg_status_b and pkg_status_b.get("purl"):
+            core_purl_b = get_core_purl(pkg_status_b["purl"])
+            pkg_b = packages_map.get(str(core_purl_b))
 
         if change_type == "A":
             if pkg_status_b and pkg_b:
-                utils.create_note(pkg_b, saneyaml.dump(pkg_status_b))
+                notes_to_create.append((pkg_b, pkg_status_b))
 
         elif change_type == "M":
             if pkg_status_a and not pkg_status_b and pkg_a:
-                utils.delete_note(pkg_a, saneyaml.dump(pkg_status_a))
+                notes_to_delete.append((pkg_a, pkg_status_a))
 
             elif pkg_status_b and not pkg_status_a and pkg_b:
-                utils.create_note(pkg_b, saneyaml.dump(pkg_status_b))
+                notes_to_create.append((pkg_b, pkg_status_b))
 
             elif pkg_status_a and pkg_status_b and pkg_b:
-                utils.update_note(pkg_b, saneyaml.dump(pkg_status_a), saneyaml.dump(pkg_status_b))
+                notes_to_update.append((pkg_b, pkg_status_a, pkg_status_b))
 
         elif change_type == "D":
             if pkg_status_a and pkg_a:
-                utils.delete_note(pkg_a, saneyaml.dump(pkg_status_a))
+                notes_to_delete.append((pkg_a, pkg_status_a))
 
         else:
             logger(f"Unknown change_type: {change_type}", level=logging.ERROR)
+
+    if notes_to_create:
+        bulk_create_notes(notes_to_create)
+    if notes_to_update:
+        bulk_update_notes(notes_to_update)
+    if notes_to_delete:
+        bulk_delete_notes(notes_to_delete)
+
+
+def bulk_create_notes(notes_to_create):
+    """Bulk create notes and federate activities"""
+    if not notes_to_create:
+        return
+
+    notes_by_pkg = {}
+    note_objects_to_create = []
+
+    for pkg, note_dict in notes_to_create:
+        content = saneyaml.dump(note_dict)
+        if pkg not in notes_by_pkg:
+            notes_by_pkg[pkg] = []
+        notes_by_pkg[pkg].append(content)
+
+    existing_notes = set()
+    for pkg, contents in notes_by_pkg.items():
+        existing = Note.objects.filter(acct=pkg.acct, content__in=contents).values_list(
+            "content", flat=True
+        )
+        existing_notes.update(existing)
+
+    pkg_note_pairs = []
+    activities_to_federate = []
+
+    for pkg, note_dict in notes_to_create:
+        content = saneyaml.dump(note_dict)
+
+        if content not in existing_notes:
+            note = Note(acct=pkg.acct, content=content)
+            note_objects_to_create.append(note)
+            pkg_note_pairs.append((pkg, note))
+
+    if note_objects_to_create:
+        created_notes = Note.objects.bulk_create(note_objects_to_create)
+
+        through_objects = []
+        for i, (pkg, _) in enumerate(pkg_note_pairs):
+            note = created_notes[i]
+            through_objects.append(Package.notes.through(package_id=pkg.id, note_id=note.id))
+
+        Package.notes.through.objects.bulk_create(through_objects, ignore_conflicts=True)
+
+        for pkg, note in zip([p for p, _ in pkg_note_pairs], created_notes):
+            if pkg.followers_inboxes:
+                create_activity = CreateActivity(actor=pkg.to_ap, object=note.to_ap)
+                activities_to_federate.append(
+                    {
+                        "targets": pkg.followers_inboxes,
+                        "body": json.dumps(create_activity.to_ap()),
+                        "key_id": pkg.key_id,
+                    }
+                )
+
+    for pkg, note_dict in notes_to_create:
+        content = saneyaml.dump(note_dict)
+        if content in existing_notes:
+            note = Note.objects.get(acct=pkg.acct, content=content)
+            pkg.notes.add(note)
+
+            # Still need to federate for existing notes
+            if pkg.followers_inboxes:
+                create_activity = CreateActivity(actor=pkg.to_ap, object=note.to_ap)
+                activities_to_federate.append(
+                    {
+                        "targets": pkg.followers_inboxes,
+                        "body": json.dumps(create_activity.to_ap()),
+                        "key_id": pkg.key_id,
+                    }
+                )
+
+    if activities_to_federate:
+        Activity.bulk_federate(activities_to_federate)
+
+
+def bulk_update_notes(notes_to_update):
+    """Bulk update notes and federate activities"""
+    if not notes_to_update:
+        return
+
+    actual_updates = []
+    for pkg, old_note_dict, new_note_dict in notes_to_update:
+        if old_note_dict != new_note_dict:
+            actual_updates.append((pkg, old_note_dict, new_note_dict))
+
+    if not actual_updates:
+        return
+
+    query_conditions = Q()
+    update_mapping = {}
+
+    for pkg, old_note_dict, new_note_dict in actual_updates:
+        old_content = saneyaml.dump(old_note_dict)
+        new_content = saneyaml.dump(new_note_dict)
+        query_conditions |= Q(acct=pkg.acct, content=old_content)
+        update_mapping[(pkg.acct, old_content)] = new_content
+
+    notes_to_update_qs = Note.objects.filter(query_conditions)
+    existing_notes = list(notes_to_update_qs)
+
+    if not existing_notes:
+        return
+
+    when_clauses = []
+    activities_to_federate = []
+    note_id_to_pkg = {}
+
+    for note in existing_notes:
+        key = (note.acct, note.content)
+        if key in update_mapping:
+            new_content = update_mapping[key]
+            when_clauses.append(When(id=note.id, then=Value(new_content)))
+
+            for pkg, old_note_dict, new_note_dict in actual_updates:
+                if pkg.acct == note.acct and saneyaml.dump(old_note_dict) == note.content:
+                    note_id_to_pkg[note.id] = (pkg, new_note_dict)
+                    break
+
+    if when_clauses:
+        Note.objects.filter(id__in=[note.id for note in existing_notes]).update(
+            content=Case(*when_clauses, output_field=TextField())
+        )
+
+        for note in existing_notes:
+            if note.id in note_id_to_pkg:
+                pkg, new_note_dict = note_id_to_pkg[note.id]
+                if pkg.followers_inboxes:
+                    note.content = saneyaml.dump(new_note_dict)
+                    update_activity = UpdateActivity(actor=pkg.to_ap, object=note.to_ap)
+                    activities_to_federate.append(
+                        {
+                            "targets": pkg.followers_inboxes,
+                            "body": json.dumps(update_activity.to_ap()),
+                            "key_id": pkg.key_id,
+                        }
+                    )
+
+        if activities_to_federate:
+            Activity.bulk_federate(activities_to_federate)
+
+
+def bulk_delete_notes(notes_to_delete):
+    """Bulk delete notes (soft delete) and federate activities"""
+    if not notes_to_delete:
+        return
+
+    query_conditions = Q()
+    delete_mapping = {}
+
+    for pkg, note_dict in notes_to_delete:
+        content = saneyaml.dump(note_dict)
+        query_conditions |= Q(acct=pkg.acct, content=content)
+        delete_mapping[(pkg.acct, content)] = pkg
+
+    notes_to_delete_qs = Note.objects.filter(query_conditions)
+    existing_notes = list(notes_to_delete_qs.select_related())
+
+    if not existing_notes:
+        return
+
+    activities_to_federate = []
+    notes_to_soft_delete = []
+
+    for note in existing_notes:
+        key = (note.acct, note.content)
+        if key in delete_mapping:
+            pkg = delete_mapping[key]
+            notes_to_soft_delete.append(note.id)
+            note_ap = note.to_ap
+
+            if pkg.followers_inboxes:
+                deleted_activity = DeleteActivity(actor=pkg.to_ap, object=note_ap)
+                activities_to_federate.append(
+                    {
+                        "targets": pkg.followers_inboxes,
+                        "body": json.dumps(deleted_activity.to_ap()),
+                        "key_id": pkg.key_id,
+                    }
+                )
+
+    if notes_to_soft_delete:
+        Note.objects.filter(id__in=notes_to_soft_delete).delete()
+
+        if activities_to_federate:
+            Activity.bulk_federate(activities_to_federate)

@@ -8,6 +8,7 @@
 #
 import json
 import logging
+from collections import defaultdict
 from dataclasses import asdict
 from dataclasses import dataclass
 from dataclasses import field
@@ -195,6 +196,21 @@ class Activity:
 
         # Return the permissions for the specific actor and object type
         return permissions.get(type(actor), {}).get(type(object), lambda: {})
+
+    @classmethod
+    def bulk_federate(cls, activities):
+        """Bulk federate multiple activities"""
+        grouped = defaultdict(list)
+
+        for activity in activities:
+            targets_key = tuple(sorted(activity["targets"]))
+            grouped[targets_key].append(activity)
+
+        for targets, group in grouped.items():
+            for activity in group:
+                cls.federate(
+                    targets=list(targets), body=activity["body"], key_id=activity["key_id"]
+                )
 
 
 @dataclass
