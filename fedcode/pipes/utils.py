@@ -8,6 +8,7 @@
 #
 
 import json
+import os
 
 import saneyaml
 from packageurl import PackageURL
@@ -95,3 +96,22 @@ def get_scan_note(path):
             },
         ],
     }
+
+
+def get_vulnerability_path(repo_path: str, vulnerability_id: str) -> str:
+    """
+    Get the vulnerability file path using repo_path and vulnerability_id.
+    Raise FileNotFoundError if the file does not exist.
+    """
+    vul_filepath = os.path.join(
+        repo_path,
+        f"aboutcode-vulnerabilities-{vulnerability_id[5:7]}",
+        vulnerability_id[10:12],
+        vulnerability_id,
+        f"{vulnerability_id}.yml",
+    )
+
+    if not os.path.exists(vul_filepath):
+        raise FileNotFoundError(f"Vulnerability file not found: {vul_filepath}")
+
+    return vul_filepath
