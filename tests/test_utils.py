@@ -13,6 +13,7 @@ import pytest
 from fedcode.activitypub import AP_CONTEXT
 from fedcode.activitypub import Activity
 from fedcode.activitypub import create_activity_obj
+from fedcode.pipes.utils import get_vulnerability_path
 from fedcode.utils import check_purl_actor
 from fedcode.utils import full_resolve
 from fedcode.utils import full_reverse
@@ -83,3 +84,25 @@ def test_full_resolve():
 
 def test_check_purl_actor():
     assert check_purl_actor("pkg:maven/org.apache.logging")
+
+
+def test_get_vulnerability_path(tmp_path):
+    repo_path = tmp_path
+    vulnerability_id = "VCID-1n1d-h5qn-nyau"
+
+    vuln_dir = repo_path / "aboutcode-vulnerabilities" / vulnerability_id[5:7] / vulnerability_id
+    vuln_dir.mkdir(parents=True, exist_ok=True)
+
+    vuln_file = vuln_dir / f"{vulnerability_id}.yml"
+    vuln_file.write_text("id: VCID-1n1d-h5qn-nyau\n")
+
+    result = get_vulnerability_path(str(repo_path), vulnerability_id)
+    assert result == str(vuln_file)
+
+
+def test_get_vulnerability_path_not_found(tmp_path):
+    repo_path = tmp_path
+    vulnerability_id = "VCID-1n1d-h5qn-nyau"
+
+    with pytest.raises(FileNotFoundError):
+        get_vulnerability_path(str(repo_path), vulnerability_id)

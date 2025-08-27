@@ -105,8 +105,8 @@ def get_vulnerability_path(repo_path: str, vulnerability_id: str) -> str:
     """
     vul_filepath = os.path.join(
         repo_path,
-        f"aboutcode-vulnerabilities-{vulnerability_id[5:7]}",
-        vulnerability_id[10:12],
+        "aboutcode-vulnerabilities",
+        vulnerability_id[5:7],
         vulnerability_id,
         f"{vulnerability_id}.yml",
     )
