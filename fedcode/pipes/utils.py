@@ -8,6 +8,7 @@
 #
 
 import json
+import os
 
 import saneyaml
 from packageurl import PackageURL
@@ -15,12 +16,12 @@ from packageurl import PackageURL
 from fedcode.activitypub import Activity
 from fedcode.activitypub import CreateActivity
 from fedcode.activitypub import DeleteActivity
+from fedcode.activitypub import UpdateActivity
 from fedcode.models import Note
 
 
 def create_note(pkg, note_dict):
-    # TODO: also take argument for source of the note ideally github blob for
-    # for file.
+    # TODO: also take argument for source of the note ideally github blob for file.
     note, _ = Note.objects.get_or_create(acct=pkg.acct, content=saneyaml.dump(note_dict))
     pkg.notes.add(note)
     create_activity = CreateActivity(actor=pkg.to_ap, object=note.to_ap)
@@ -31,11 +32,27 @@ def create_note(pkg, note_dict):
     )
 
 
+def update_note(pkg, old_note_dict, new_note_dict):
+    if old_note_dict == new_note_dict:
+        return
+
+    note = Note.objects.get(acct=pkg.acct, content=saneyaml.dump(old_note_dict))
+
+    note.content = saneyaml.dump(new_note_dict)
+    note.save()
+
+    update_activity = UpdateActivity(actor=pkg.to_ap, object=note.to_ap)
+    Activity.federate(
+        targets=pkg.followers_inboxes,
+        body=update_activity.to_ap(),
+        key_id=pkg.key_id,
+    )
+
+
 def delete_note(pkg, note_dict):
     note = Note.objects.get(acct=pkg.acct, content=saneyaml.dump(note_dict))
     note_ap = note.to_ap
-    note.delete()
-    pkg.notes.remove(note)
+    note.delete()  # soft delete
 
     deleted_activity = DeleteActivity(actor=pkg.to_ap, object=note_ap)
     Activity.federate(
@@ -69,7 +86,7 @@ def get_scan_note(path):
     purl = package_metadata_path_to_purl(path=path)
 
     # TODO: Use tool-alias.yml to get tool for corresponding tool
-    # for scan  https://github.com/aboutcode-org/federatedcode/issues/24
+    # for scan https://github.com/aboutcode-org/federatedcode/issues/24
     return {
         "purl": str(purl),
         "scans": [
@@ -79,3 +96,22 @@ def get_scan_note(path):
             },
         ],
     }
+
+
+def get_vulnerability_path(repo_path: str, vulnerability_id: str) -> str:
+    """
+    Get the vulnerability file path using repo_path and vulnerability_id.
+    Raise FileNotFoundError if the file does not exist.
+    """
+    vul_filepath = os.path.join(
+        repo_path,
+        "aboutcode-vulnerabilities",
+        vulnerability_id[5:7],
+        vulnerability_id,
+        f"{vulnerability_id}.yml",
+    )
+
+    if not os.path.exists(vul_filepath):
+        raise FileNotFoundError(f"Vulnerability file not found: {vul_filepath}")
+
+    return vul_filepath

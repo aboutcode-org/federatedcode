@@ -29,45 +29,39 @@ User Signup
     </div>
     {% endif %}
 
-    <h2 class="title">User Signup</h2>
+    <h2 class="title">Create your FederatedCode Account</h2>
     <form method="post">
       {% csrf_token %}
       <div class="field">
         <div class="control">
-          <input class="input" placeholder="Username" type="text" name="username" maxlength="150" autofocus required
+            <label class="label" for="id_username">Username</label>
+            <input class="input" placeholder="Username" type="text" name="username" maxlength="150" autofocus required
             id="id_username">
-          <span class="help">
-            Only letters, numbers, and <strong>@ . + - _</strong> allowed.
-          </span>
         </div>
       </div>
       <div class="field">
         <div class="control">
+          <label class="label" for="id_email">Email</label>
           <input class="input" type="email" placeholder="Email" name="email" maxlength="254" required id="id_email">
         </div>
       </div>
       <div class="field">
         <div class="control">
-          <input class="input" type="password" placeholder="Password" name="password1" autocomplete="new-password"
+            <label class="label" for="id_password1">Password</label>
+            <input class="input" type="password" placeholder="Create a password" name="password1" autocomplete="new-password"
             required id="id_password1">
-          <span class="help">
-            <ul>
-              <li>Password can't be too similar to your other personal information.</li>
-              <li>Password must contain at least 8 characters.</li>
-              <li>Password can't be a commonly used password.</li>
-              <li>Password can't be entirely numeric.</li>
-            </ul>
-          </span>
 
         </div>
       </div>
       <div class="field">
         <div class="control">
-          <input class="input" type="password" placeholder="Confirm password" name="password2"
+          <label class="label" for="id_password2">Confirm Password</label>
+          <input class="input" type="password" placeholder="Confirm your password" name="password2"
             autocomplete="new-password" required id="id_password2">
         </div>
       </div>
       <div class="field">
+        <label class="label">Verification</label>
         <div class="control">
           {{ form.captcha }}
         </div>

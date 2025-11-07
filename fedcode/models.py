@@ -27,6 +27,11 @@ from federatedcode.settings import FEDERATEDCODE_DOMAIN
 from federatedcode.settings import FEDERATEDCODE_WORKSPACE_LOCATION
 
 
+class ActiveManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+
+
 class RemoteActor(models.Model):
     """
     Represent a remote actor with its username
@@ -213,6 +218,16 @@ class Note(models.Model):
         Reputation,
     )
 
+    objects = ActiveManager()  # Default manager (excludes deleted)
+    all_objects = models.Manager()  # Includes deleted
+
+    is_deleted = models.BooleanField(default=False)
+
+    def delete(self, *args, **kwargs):
+        """Soft delete instead of hard delete."""
+        self.is_deleted = True
+        self.save()
+
     class Meta:
         ordering = ["-updated_at"]
 
@@ -284,6 +299,16 @@ class Package(Actor):
         blank=True,
         help_text="""the notes created by this package""",
     )
+
+    objects = ActiveManager()  # Default manager (excludes deleted)
+    all_objects = models.Manager()  # Includes deleted
+
+    is_deleted = models.BooleanField(default=False)
+
+    def delete(self, *args, **kwargs):
+        """Soft delete instead of hard delete."""
+        self.is_deleted = True
+        self.save()
 
     class Meta:
         ordering = ["purl"]

@@ -25,7 +25,10 @@ you will find information on:
     :caption: Tutorial
 
     tutorial_getting_started
+    tutorial_sync_scan
+    tutorial_sync_vuln
     tutorial_remote_subscribe_package_update
+    tutorial_federate
 
 .. toctree::
     :maxdepth: 2
@@ -36,7 +39,6 @@ you will find information on:
     command-line-interface
     rest-api
     application-settings
-    run-application
 
 Indices and tables
 ==================

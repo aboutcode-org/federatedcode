@@ -68,6 +68,7 @@ from fedcode.models import Reputation
 from fedcode.models import Review
 from fedcode.models import SyncRequest
 from fedcode.models import Vulnerability
+from fedcode.pipes.utils import get_vulnerability_path
 from fedcode.signatures import FEDERATEDCODE_PUBLIC_KEY
 from fedcode.signatures import HttpSignature
 from fedcode.utils import ap_collection
@@ -810,16 +811,17 @@ def redirect_repository(request, repository_id):
 def redirect_vulnerability(request, vulnerability_id):
     try:
         vul = Vulnerability.objects.get(id=vulnerability_id)
-        vul_filepath = os.path.join(
-            vul.repo.path,
-            f"./aboutcode-vulnerabilities-{vulnerability_id[5:7]}/{vulnerability_id[10:12]}"
-            f"/{vulnerability_id}/{vulnerability_id}.yml",
-        )
-        with open(vul_filepath) as f:
-            return HttpResponse(json.dumps(f.read()))
+
+        repo_path = vul.repo.path
+        vul_filepath = get_vulnerability_path(repo_path, vulnerability_id)
+
+        with open(vul_filepath, encoding="utf-8") as f:
+            return HttpResponse(json.dumps(f.read()), content_type="application/json")
 
     except Vulnerability.DoesNotExist:
-        return Http404("Vulnerability does not exist")
+        raise Http404("Vulnerability does not exist")
+    except FileNotFoundError:
+        raise Http404("Vulnerability file not found")
 
 
 class UserFollowing(View):

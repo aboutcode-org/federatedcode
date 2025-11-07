@@ -42,8 +42,8 @@ def parse_webfinger(subject):
         return tuple(subject.split("@"))
 
 
-def generate_webfinger(username, domain=FEDERATEDCODE_DOMAIN):
-    return username + "@" + domain
+def generate_webfinger(username: str, domain=FEDERATEDCODE_DOMAIN) -> str:
+    return str(username) + "@" + domain
 
 
 def clone_git_repo(repo_path, repo_url):
