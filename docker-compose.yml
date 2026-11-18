@@ -2,7 +2,7 @@ version: '3'
 
 services:
   db:
-    image: postgres:13
+    image: docker.io/library/postgres:13
     command: -c config_file=/etc/postgresql/postgresql.conf
     env_file:
       - docker.env
@@ -28,7 +28,7 @@ services:
       - db
 
   nginx:
-    image: nginx
+    image: docker.io/library/nginx:1.31.9-alpine
     ports:
       - 80:80
       - 443:443
